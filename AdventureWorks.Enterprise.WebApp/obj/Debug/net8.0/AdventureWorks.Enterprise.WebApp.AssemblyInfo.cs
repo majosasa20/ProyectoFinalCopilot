@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AdventureWorks.Enterprise.WebApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+243e7dabd4421ce1a15604147c9484a5053f3c3b")]
 [assembly: System.Reflection.AssemblyProductAttribute("AdventureWorks.Enterprise.WebApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AdventureWorks.Enterprise.WebApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

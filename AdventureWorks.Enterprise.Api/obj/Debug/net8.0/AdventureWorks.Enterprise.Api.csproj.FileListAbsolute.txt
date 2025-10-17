@@ -149,3 +149,4 @@ C:\Users\mariamsagastume\source\repos\Proyecto Final Copilot\AdventureWorks.Ente
 C:\Users\mariamsagastume\source\repos\Proyecto Final Copilot\AdventureWorks.Enterprise.Api\obj\Debug\net8.0\AdventureWorks.Enterprise.Api.pdb
 C:\Users\mariamsagastume\source\repos\Proyecto Final Copilot\AdventureWorks.Enterprise.Api\obj\Debug\net8.0\AdventureWorks.Enterprise.Api.genruntimeconfig.cache
 C:\Users\mariamsagastume\source\repos\Proyecto Final Copilot\AdventureWorks.Enterprise.Api\obj\Debug\net8.0\ref\AdventureWorks.Enterprise.Api.dll
+C:\Users\mariamsagastume\source\repos\Proyecto Final Copilot\AdventureWorks.Enterprise.Api\obj\Debug\net8.0\AdventureWorks.Enterprise.Api.sourcelink.json

@@ -39,3 +39,4 @@ C:\Users\mariamsagastume\source\repos\Proyecto Final Copilot\AdventureWorks.Ente
 C:\Users\mariamsagastume\source\repos\Proyecto Final Copilot\AdventureWorks.Enterprise.WebApp\obj\Debug\net8.0\AdventureWorks.Enterprise.WebApp.pdb
 C:\Users\mariamsagastume\source\repos\Proyecto Final Copilot\AdventureWorks.Enterprise.WebApp\obj\Debug\net8.0\AdventureWorks.Enterprise.WebApp.genruntimeconfig.cache
 C:\Users\mariamsagastume\source\repos\Proyecto Final Copilot\AdventureWorks.Enterprise.WebApp\obj\Debug\net8.0\ref\AdventureWorks.Enterprise.WebApp.dll
+C:\Users\mariamsagastume\source\repos\Proyecto Final Copilot\AdventureWorks.Enterprise.WebApp\obj\Debug\net8.0\AdventureWorks.Enterprise.WebApp.sourcelink.json

@@ -54,44 +54,14 @@ namespace AdventureWorks.Enterprise.Api.Controllers
         /// </summary>
         /// <returns>Lista de empleados</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<object>>> ObtenerEmpleados()
+        public async Task<ActionResult<IEnumerable<EmployeeDto>>> ObtenerEmpleados()
         {
             try
             {
                 _logger.LogInformation("?? Obteniendo todos los empleados en {Timestamp}", DateTime.UtcNow);
                 
-                var empleados = await _context.Employees
-                    .Where(e => e.CurrentFlag)
-                    .Select(e => new
-                    {
-                        e.BusinessEntityID,
-                        e.NationalIDNumber,
-                        e.LoginID,
-                        e.OrganizationLevel,
-                        e.JobTitle,
-                        e.BirthDate,
-                        e.MaritalStatus,
-                        e.Gender,
-                        e.HireDate,
-                        e.SalariedFlag,
-                        e.VacationHours,
-                        e.SickLeaveHours,
-                        e.CurrentFlag,
-                        e.ModifiedDate,
-                        // Incluir información del departamento actual sin referencias circulares
-                        DepartamentoActual = e.EmployeeDepartmentHistories
-                            .Where(edh => edh.EndDate == null)
-                            .Select(edh => new
-                            {
-                                DepartmentID = edh.Department.DepartmentID,
-                                DepartmentName = edh.Department.Name,
-                                GroupName = edh.Department.GroupName,
-                                StartDate = edh.StartDate
-                            })
-                            .FirstOrDefault()
-                    })
-                    .OrderBy(e => e.BusinessEntityID)
-                    .Take(100)
+                var empleados = await _context.Database
+                    .SqlQueryRaw<EmployeeDto>("EXEC usp_GetAllEmployees_Sagastume")
                     .ToListAsync();
 
                 _logger.LogInformation("? Empleados obtenidos exitosamente: {Count}", empleados.Count);

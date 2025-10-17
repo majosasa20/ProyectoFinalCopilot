@@ -30,6 +30,9 @@
             <button class="btn btn-info ms-2" @onclick="TestConectividad">
                 <i class="fas fa-network-wired"></i> Test API
             </button>
+            <button class="btn btn-outline-primary ms-2" @onclick="AbrirModalNuevoEmpleado">
+                <i class="fas fa-user-plus"></i> Nuevo Empleado
+            </button>
         </div>
     </div>
 
@@ -76,8 +79,9 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>ID</th>
-                                <th>Login ID</th>
+                                <th>Nombre Completo</th>
                                 <th>Cargo</th>
+                                <th>Departamento</th>
                                 <th>Estado Civil</th>
                                 <th>Género</th>
                                 <th>Fecha Contratación</th>
@@ -93,10 +97,35 @@
                                         <strong class="text-primary">@empleado.BusinessEntityID</strong>
                                     </td>
                                     <td>
-                                        <span class="badge bg-light text-dark">@empleado.LoginID</span>
+                                        <strong class="text-dark">
+                                            @if (!string.IsNullOrEmpty(empleado.NombreCompleto))
+                                            {
+                                                @empleado.NombreCompleto
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">@empleado.LoginID</span>
+                                            }
+                                        </strong>
                                     </td>
                                     <td>
                                         <strong>@empleado.JobTitle</strong>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(empleado.DepartmentName))
+                                        {
+                                            <div>
+                                                <strong class="text-info">@empleado.DepartmentName</strong>
+                                                @if (!string.IsNullOrEmpty(empleado.GroupName))
+                                                {
+                                                    <br><small class="text-muted">@empleado.GroupName</small>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Sin asignar</span>
+                                        }
                                     </td>
                                     <td>
                                         <span class="badge @GetMaritalStatusBadgeClass(empleado.MaritalStatus)">
@@ -143,11 +172,72 @@
     }
 </div>
 
+@* Modal para crear nuevo empleado *@
+@if (mostrarModalNuevoEmpleado)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-user-plus"></i> Nuevo Empleado</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModalNuevoEmpleado"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="nuevoEmpleado" OnValidSubmit="CrearEmpleadoNuevo">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <InputText class="form-control" @bind-Value="nuevoEmpleado.NombreCompleto" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Login ID</label>
+                            <InputText class="form-control" @bind-Value="nuevoEmpleado.LoginID" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Cargo</label>
+                            <InputText class="form-control" @bind-Value="nuevoEmpleado.JobTitle" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha de Nacimiento</label>
+                            <InputDate class="form-control" @bind-Value="nuevoEmpleado.BirthDate" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado Civil</label>
+                            <InputText class="form-control" @bind-Value="nuevoEmpleado.MaritalStatus" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Género</label>
+                            <InputText class="form-control" @bind-Value="nuevoEmpleado.Gender" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha de Contratación</label>
+                            <InputDate class="form-control" @bind-Value="nuevoEmpleado.HireDate" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Horas Vacaciones</label>
+                            <InputNumber class="form-control" @bind-Value="nuevoEmpleado.VacationHours" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Horas Enfermedad</label>
+                            <InputNumber class="form-control" @bind-Value="nuevoEmpleado.SickLeaveHours" />
+                        </div>
+                        <button type="submit" class="btn btn-success">Crear</button>
+                        <button type="button" class="btn btn-secondary ms-2" @onclick="CerrarModalNuevoEmpleado">Cancelar</button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<EmployeeDto>? empleados;
     private bool isLoading = true;
     private string? errorMessage;
     private string? detailedError;
+    private bool mostrarModalNuevoEmpleado = false;
+    private EmployeeDto nuevoEmpleado = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -270,6 +360,45 @@
                 Logger.LogError(ex, "? Error al eliminar empleado {EmpleadoId}", empleadoId);
                 await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
             }
+        }
+    }
+
+    private void AbrirModalNuevoEmpleado()
+    {
+        nuevoEmpleado = new EmployeeDto
+        {
+            BirthDate = DateTime.Today.AddYears(-25),
+            HireDate = DateTime.Today,
+            VacationHours = 0,
+            SickLeaveHours = 0,
+            SalariedFlag = true,
+            CurrentFlag = true
+        };
+        mostrarModalNuevoEmpleado = true;
+    }
+    private void CerrarModalNuevoEmpleado()
+    {
+        mostrarModalNuevoEmpleado = false;
+    }
+    private async Task CrearEmpleadoNuevo()
+    {
+        try
+        {
+            var creado = await ApiService.CreateEmpleadoAsync(nuevoEmpleado);
+            if (creado != null)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Empleado creado correctamente");
+                await CargarEmpleados();
+                mostrarModalNuevoEmpleado = false;
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Error al crear empleado");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
         }
     }
 

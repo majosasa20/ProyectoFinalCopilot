@@ -8,7 +8,7 @@ namespace AdventureWorks.Enterprise.Api.Models.HumanResources
         public string NationalIDNumber { get; set; } = string.Empty;
         public string LoginID { get; set; } = string.Empty;
         public string? OrganizationNode { get; set; } // hierarchyid as string
-        public byte? OrganizationLevel { get; set; } // computed, nullable
+        public short? OrganizationLevel { get; set; } // Cambio de byte? a short? para coincidir con la BD
         public string JobTitle { get; set; } = string.Empty;
         public DateTime BirthDate { get; set; }
         public string MaritalStatus { get; set; } = string.Empty;
@@ -20,5 +20,12 @@ namespace AdventureWorks.Enterprise.Api.Models.HumanResources
         public bool CurrentFlag { get; set; }
         public Guid RowGuid { get; set; }
         public DateTime ModifiedDate { get; set; }
+        
+        // Campos adicionales para mostrar en el listado
+        public string? NombreCompleto { get; set; }
+        public int? DepartmentID { get; set; }
+        public string? DepartmentName { get; set; }
+        public string? GroupName { get; set; }
+        public DateTime? DepartmentStartDate { get; set; }
     }
 }

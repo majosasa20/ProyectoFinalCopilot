@@ -1,0 +1,43 @@
+﻿using System;
+
+namespace AdventureWorks.Enterprise.WebApp.Models.HumanResources
+{
+    public class EmployeeDto
+    {
+        public int BusinessEntityID { get; set; }
+        public string NationalIDNumber { get; set; } = string.Empty;
+        public string LoginID { get; set; } = string.Empty;
+        public string? OrganizationNode { get; set; }
+        public short? OrganizationLevel { get; set; } // Cambio de byte? a short?
+        public string JobTitle { get; set; } = string.Empty;
+        public DateTime BirthDate { get; set; }
+        public string MaritalStatus { get; set; } = string.Empty;
+        public string Gender { get; set; } = string.Empty;
+        public DateTime HireDate { get; set; }
+        public bool SalariedFlag { get; set; }
+        public short VacationHours { get; set; }
+        public short SickLeaveHours { get; set; }
+        public bool CurrentFlag { get; set; }
+        public Guid RowGuid { get; set; }
+        public DateTime ModifiedDate { get; set; }
+        
+        // Campos adicionales para mostrar en el listado
+        public string? NombreCompleto { get; set; }
+        public string? DepartmentName { get; set; }
+        public string? GroupName { get; set; }
+        public DateTime? DepartmentStartDate { get; set; }
+    }
+
+    public class ReporteEmpleadosDepartamentoDto
+    {
+        public int BusinessEntityID { get; set; }
+        public string NombreCompleto { get; set; } = string.Empty;
+        public string Cargo { get; set; } = string.Empty;
+        public string Departamento { get; set; } = string.Empty;
+        public string GrupoDepartamento { get; set; } = string.Empty;
+        public DateTime FechaInicioDepartamento { get; set; }
+        public int DiasEnDepartamento { get; set; }
+        public int AniosEnDepartamento { get; set; }
+        public DateTime FechaContratacion { get; set; }
+    }
+}

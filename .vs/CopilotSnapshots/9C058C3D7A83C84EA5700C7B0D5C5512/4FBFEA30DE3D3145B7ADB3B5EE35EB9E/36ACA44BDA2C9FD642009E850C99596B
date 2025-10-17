@@ -1,0 +1,368 @@
+﻿@page "/humanresources/employees/{EmployeeId:int}"
+@using AdventureWorks.Enterprise.WebApp.Models.HumanResources
+@using AdventureWorks.Enterprise.WebApp.Services
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ILogger<EmployeeDetails> Logger
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Detalle Empleado - Portal RRHH</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/humanresources/employees">Empleados</a>
+                    </li>
+                    <li class="breadcrumb-item active">Detalle</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" @onclick="Regresar">
+                <i class="fas fa-arrow-left"></i> Regresar
+            </button>
+        </div>
+    </div>
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Error:</strong> @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center p-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando detalles del empleado...</p>
+        </div>
+    }
+    else if (empleado != null)
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="card-title mb-0">
+                            <i class="fas fa-user"></i>
+                            Información del Empleado #@empleado.BusinessEntityID
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">ID Nacional:</label>
+                                    <p class="form-control-plaintext">@empleado.NationalIDNumber</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Login ID:</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge bg-light text-dark">@empleado.LoginID</span>
+                                    </p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Cargo:</label>
+                                    <p class="form-control-plaintext text-primary fw-bold">@empleado.JobTitle</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Fecha de Nacimiento:</label>
+                                    <p class="form-control-plaintext">
+                                        @empleado.BirthDate.ToString("dd/MM/yyyy")
+                                        <small class="text-muted">(@CalcularEdad(empleado.BirthDate) años)</small>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Estado Civil:</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge @GetMaritalStatusBadgeClass(empleado.MaritalStatus)">
+                                            @GetMaritalStatusText(empleado.MaritalStatus)
+                                        </span>
+                                    </p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Género:</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge @GetGenderBadgeClass(empleado.Gender)">
+                                            @GetGenderText(empleado.Gender)
+                                        </span>
+                                    </p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Fecha de Contratación:</label>
+                                    <p class="form-control-plaintext">
+                                        @empleado.HireDate.ToString("dd/MM/yyyy")
+                                        <small class="text-muted">(@CalcularAntiguedad(empleado.HireDate))</small>
+                                    </p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tipo de Empleado:</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge @(empleado.SalariedFlag ? "bg-success" : "bg-warning")">
+                                            @(empleado.SalariedFlag ? "Asalariado" : "Por Horas")
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calendar-alt"></i>
+                            Tiempo y Beneficios
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted">Horas de Vacaciones:</span>
+                            <span class="badge bg-primary fs-6">@empleado.VacationHours h</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted">Horas de Enfermedad:</span>
+                            <span class="badge bg-warning fs-6">@empleado.SickLeaveHours h</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted">Estado:</span>
+                            <span class="badge @(empleado.CurrentFlag ? "bg-success" : "bg-danger") fs-6">
+                                @(empleado.CurrentFlag ? "Activo" : "Inactivo")
+                            </span>
+                        </div>
+                        <hr>
+                        <div class="text-center">
+                            <small class="text-muted">
+                                Última modificación:<br>
+                                @empleado.ModifiedDate.ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-cogs"></i>
+                            Acciones
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" @onclick="EditarEmpleado">
+                                <i class="fas fa-edit"></i> Editar Empleado
+                            </button>
+                            <button class="btn btn-outline-info" @onclick="VerHistorialDepartamentos">
+                                <i class="fas fa-history"></i> Historial Departamentos
+                            </button>
+                            <button class="btn btn-outline-success" @onclick="VerHistorialSalarios">
+                                <i class="fas fa-dollar-sign"></i> Historial Salarios
+                            </button>
+                            <hr>
+                            <button class="btn btn-outline-danger" @onclick="DesactivarEmpleado">
+                                <i class="fas fa-user-times"></i> Desactivar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!isLoading)
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            No se encontró el empleado solicitado.
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int EmployeeId { get; set; }
+    
+    private EmployeeDto? empleado;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("📄 Inicializando detalle de empleado {EmployeeId}", EmployeeId);
+        await CargarEmpleado();
+    }
+
+    private async Task CargarEmpleado()
+    {
+        try
+        {
+            Logger.LogInformation("🔄 Cargando empleado {EmployeeId}", EmployeeId);
+            
+            errorMessage = null;
+            isLoading = true;
+            StateHasChanged();
+            
+            empleado = await ApiService.GetEmpleadoAsync(EmployeeId);
+            
+            if (empleado == null)
+            {
+                Logger.LogWarning("⚠️ Empleado {EmployeeId} no encontrado", EmployeeId);
+            }
+            else
+            {
+                Logger.LogInformation("✅ Empleado {EmployeeId} cargado exitosamente", EmployeeId);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "🌐 Error de conexión HTTP al cargar empleado {EmployeeId}", EmployeeId);
+            errorMessage = "Error de conexión con la API. Verifique que el servidor esté ejecutándose.";
+        }
+        catch (TaskCanceledException ex)
+        {
+            Logger.LogError(ex, "⏱️ Timeout al cargar empleado {EmployeeId}", EmployeeId);
+            errorMessage = "La solicitud ha expirado. El servidor puede estar sobrecargado.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "💥 Error general al cargar empleado {EmployeeId}", EmployeeId);
+            errorMessage = $"Error inesperado al cargar empleado: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Regresar()
+    {
+        Logger.LogInformation("↩️ Regresando a lista de empleados");
+        Navigation.NavigateTo("/humanresources/employees");
+    }
+
+    private async Task EditarEmpleado()
+    {
+        Logger.LogInformation("✏️ Editando empleado {EmployeeId}", EmployeeId);
+        await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de edición pendiente de implementar");
+    }
+
+    private async Task VerHistorialDepartamentos()
+    {
+        Logger.LogInformation("🏢 Viendo historial de departamentos para empleado {EmployeeId}", EmployeeId);
+        await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de historial de departamentos pendiente");
+    }
+
+    private async Task VerHistorialSalarios()
+    {
+        Logger.LogInformation("💰 Viendo historial de salarios para empleado {EmployeeId}", EmployeeId);
+        await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de historial de salarios pendiente");
+    }
+
+    private async Task DesactivarEmpleado()
+    {
+        try
+        {
+            Logger.LogInformation("❌ Intentando desactivar empleado {EmployeeId}", EmployeeId);
+            
+            var confirmado = await JSRuntime.InvokeAsync<bool>("confirm", 
+                $"¿Está seguro que desea desactivar al empleado {empleado?.LoginID}?");
+                
+            if (confirmado)
+            {
+                var resultado = await ApiService.DeleteEmpleadoAsync(EmployeeId);
+                if (resultado)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Empleado desactivado correctamente");
+                    Logger.LogInformation("✅ Empleado {EmployeeId} desactivado exitosamente", EmployeeId);
+                    Navigation.NavigateTo("/humanresources/employees");
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Error al desactivar empleado");
+                    Logger.LogWarning("⚠️ No se pudo desactivar empleado {EmployeeId}", EmployeeId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "💥 Error al desactivar empleado {EmployeeId}", EmployeeId);
+            await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+        }
+    }
+
+    private int CalcularEdad(DateTime fechaNacimiento)
+    {
+        var hoy = DateTime.Today;
+        var edad = hoy.Year - fechaNacimiento.Year;
+        if (fechaNacimiento.Date > hoy.AddYears(-edad)) edad--;
+        return edad;
+    }
+
+    private string CalcularAntiguedad(DateTime fechaContratacion)
+    {
+        var hoy = DateTime.Today;
+        var años = hoy.Year - fechaContratacion.Year;
+        var meses = hoy.Month - fechaContratacion.Month;
+        
+        if (fechaContratacion.Date > hoy.AddYears(-años)) años--;
+        if (meses < 0) meses += 12;
+        
+        return $"{años} años, {meses} meses";
+    }
+
+    private string GetMaritalStatusBadgeClass(string status) => status switch
+    {
+        "M" => "bg-success",
+        "S" => "bg-primary",
+        _ => "bg-secondary"
+    };
+
+    private string GetMaritalStatusText(string status) => status switch
+    {
+        "M" => "Casado/a",
+        "S" => "Soltero/a",
+        _ => "N/A"
+    };
+
+    private string GetGenderBadgeClass(string gender) => gender switch
+    {
+        "M" => "bg-primary",
+        "F" => "bg-pink",
+        _ => "bg-secondary"
+    };
+
+    private string GetGenderText(string gender) => gender switch
+    {
+        "M" => "Masculino",
+        "F" => "Femenino",
+        _ => "N/A"
+    };
+}
+
+<style>
+    .bg-pink {
+        background-color: #e91e63 !important;
+    }
+    
+    .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+    
+    .form-control-plaintext {
+        padding-left: 0;
+        margin-bottom: 0;
+    }
+</style>

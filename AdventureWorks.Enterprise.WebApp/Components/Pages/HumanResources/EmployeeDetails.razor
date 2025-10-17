@@ -4,6 +4,8 @@
 @inject ApiService ApiService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject ILogger<EmployeeDetails> Logger
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>Detalle Empleado - Portal RRHH</PageTitle>
 
@@ -26,6 +28,15 @@
         </div>
     </div>
 
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Error:</strong> @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+        </div>
+    }
+
     @if (isLoading)
     {
         <div class="text-center p-4">
@@ -43,12 +54,26 @@
                     <div class="card-header bg-primary text-white">
                         <h4 class="card-title mb-0">
                             <i class="fas fa-user"></i>
-                            Información del Empleado #@empleado.BusinessEntityID
+                            @if (!string.IsNullOrEmpty(empleado.NombreCompleto))
+                            {
+                                @($"Información del Empleado - {empleado.NombreCompleto}")
+                            }
+                            else
+                            {
+                                @($"Información del Empleado #{empleado.BusinessEntityID}")
+                            }
                         </h4>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
+                                @if (!string.IsNullOrEmpty(empleado.NombreCompleto))
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Nombre Completo:</label>
+                                        <p class="form-control-plaintext text-primary fw-bold">@empleado.NombreCompleto</p>
+                                    </div>
+                                }
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">ID Nacional:</label>
                                     <p class="form-control-plaintext">@empleado.NationalIDNumber</p>
@@ -72,6 +97,23 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
+                                @if (!string.IsNullOrEmpty(empleado.DepartmentName))
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Departamento:</label>
+                                        <p class="form-control-plaintext">
+                                            <span class="badge bg-info text-white">@empleado.DepartmentName</span>
+                                            @if (!string.IsNullOrEmpty(empleado.GroupName))
+                                            {
+                                                <br><small class="text-muted">Grupo: @empleado.GroupName</small>
+                                            }
+                                            @if (empleado.DepartmentStartDate.HasValue)
+                                            {
+                                                <br><small class="text-muted">Desde: @empleado.DepartmentStartDate.Value.ToString("dd/MM/yyyy")</small>
+                                            }
+                                        </p>
+                                    </div>
+                                }
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Estado Civil:</label>
                                     <p class="form-control-plaintext">
@@ -170,7 +212,7 @@
             </div>
         </div>
     }
-    else
+    else if (!isLoading)
     {
         <div class="alert alert-warning">
             <i class="fas fa-exclamation-triangle"></i>
@@ -184,9 +226,11 @@
     
     private EmployeeDto? empleado;
     private bool isLoading = true;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
+        Logger.LogInformation("?? Inicializando detalle de empleado {EmployeeId}", EmployeeId);
         await CargarEmpleado();
     }
 
@@ -194,14 +238,37 @@
     {
         try
         {
+            Logger.LogInformation("?? Cargando empleado {EmployeeId}", EmployeeId);
+            
+            errorMessage = null;
             isLoading = true;
             StateHasChanged();
             
             empleado = await ApiService.GetEmpleadoAsync(EmployeeId);
+            
+            if (empleado == null)
+            {
+                Logger.LogWarning("?? Empleado {EmployeeId} no encontrado", EmployeeId);
+            }
+            else
+            {
+                Logger.LogInformation("? Empleado {EmployeeId} cargado exitosamente", EmployeeId);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "?? Error de conexión HTTP al cargar empleado {EmployeeId}", EmployeeId);
+            errorMessage = "Error de conexión con la API. Verifique que el servidor esté ejecutándose.";
+        }
+        catch (TaskCanceledException ex)
+        {
+            Logger.LogError(ex, "?? Timeout al cargar empleado {EmployeeId}", EmployeeId);
+            errorMessage = "La solicitud ha expirado. El servidor puede estar sobrecargado.";
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar empleado: {ex.Message}");
+            Logger.LogError(ex, "?? Error general al cargar empleado {EmployeeId}", EmployeeId);
+            errorMessage = $"Error inesperado al cargar empleado: {ex.Message}";
         }
         finally
         {
@@ -212,51 +279,57 @@
 
     private void Regresar()
     {
+        Logger.LogInformation("?? Regresando a lista de empleados");
         Navigation.NavigateTo("/humanresources/employees");
     }
 
-    private void EditarEmpleado()
+    private async Task EditarEmpleado()
     {
-        // TODO: Implementar navegación a formulario de edición
-        JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de edición pendiente de implementar");
+        Logger.LogInformation("?? Editando empleado {EmployeeId}", EmployeeId);
+        await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de edición pendiente de implementar");
     }
 
-    private void VerHistorialDepartamentos()
+    private async Task VerHistorialDepartamentos()
     {
-        // TODO: Implementar vista de historial de departamentos
-        JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de historial de departamentos pendiente");
+        Logger.LogInformation("?? Viendo historial de departamentos para empleado {EmployeeId}", EmployeeId);
+        await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de historial de departamentos pendiente");
     }
 
-    private void VerHistorialSalarios()
+    private async Task VerHistorialSalarios()
     {
-        // TODO: Implementar vista de historial de salarios
-        JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de historial de salarios pendiente");
+        Logger.LogInformation("?? Viendo historial de salarios para empleado {EmployeeId}", EmployeeId);
+        await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de historial de salarios pendiente");
     }
 
     private async Task DesactivarEmpleado()
     {
-        var confirmado = await JSRuntime.InvokeAsync<bool>("confirm", 
-            $"¿Está seguro que desea desactivar al empleado {empleado?.LoginID}?");
-            
-        if (confirmado)
+        try
         {
-            try
+            Logger.LogInformation("? Intentando desactivar empleado {EmployeeId}", EmployeeId);
+            
+            var confirmado = await JSRuntime.InvokeAsync<bool>("confirm", 
+                $"¿Está seguro que desea desactivar al empleado {empleado?.LoginID}?");
+                
+            if (confirmado)
             {
                 var resultado = await ApiService.DeleteEmpleadoAsync(EmployeeId);
                 if (resultado)
                 {
                     await JSRuntime.InvokeVoidAsync("alert", "Empleado desactivado correctamente");
+                    Logger.LogInformation("? Empleado {EmployeeId} desactivado exitosamente", EmployeeId);
                     Navigation.NavigateTo("/humanresources/employees");
                 }
                 else
                 {
                     await JSRuntime.InvokeVoidAsync("alert", "Error al desactivar empleado");
+                    Logger.LogWarning("?? No se pudo desactivar empleado {EmployeeId}", EmployeeId);
                 }
             }
-            catch (Exception ex)
-            {
-                await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
-            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "?? Error al desactivar empleado {EmployeeId}", EmployeeId);
+            await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
         }
     }
 

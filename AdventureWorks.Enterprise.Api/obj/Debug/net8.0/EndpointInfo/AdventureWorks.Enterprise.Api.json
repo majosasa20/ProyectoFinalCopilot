@@ -400,19 +400,25 @@
               "text/plain": {
                 "schema": {
                   "type": "array",
-                  "items": { }
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeDto"
+                  }
                 }
               },
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { }
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeDto"
+                  }
                 }
               },
               "text/json": {
                 "schema": {
                   "type": "array",
-                  "items": { }
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeDto"
+                  }
                 }
               }
             }
@@ -1811,6 +1817,97 @@
           },
           "employee": {
             "$ref": "#/components/schemas/Employee"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EmployeeDto": {
+        "type": "object",
+        "properties": {
+          "businessEntityID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nationalIDNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "loginID": {
+            "type": "string",
+            "nullable": true
+          },
+          "organizationNode": {
+            "type": "string",
+            "nullable": true
+          },
+          "organizationLevel": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "jobTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "maritalStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true
+          },
+          "hireDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "salariedFlag": {
+            "type": "boolean"
+          },
+          "vacationHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sickLeaveHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentFlag": {
+            "type": "boolean"
+          },
+          "rowGuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifiedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nombreCompleto": {
+            "type": "string",
+            "nullable": true
+          },
+          "departmentID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "groupName": {
+            "type": "string",
+            "nullable": true
+          },
+          "departmentStartDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false

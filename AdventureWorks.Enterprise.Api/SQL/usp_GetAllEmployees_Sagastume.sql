@@ -1,0 +1,58 @@
+-- Stored Procedure para obtener empleados con nombres completos
+-- Archivo: usp_GetAllEmployees_Sagastume.sql
+
+USE [AdventureWorks2014]
+GO
+
+-- Verificar si el SP existe y eliminarlo
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[usp_GetAllEmployees_Sagastume]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[usp_GetAllEmployees_Sagastume]
+GO
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[usp_GetAllEmployees_Sagastume]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        e.BusinessEntityID,
+        e.NationalIDNumber,
+        e.LoginID,
+        CAST(e.OrganizationNode AS VARCHAR(MAX)) AS OrganizationNode,
+        e.OrganizationLevel,
+        e.JobTitle,
+        e.BirthDate,
+        e.MaritalStatus,
+        e.Gender,
+        e.HireDate,
+        e.SalariedFlag,
+        e.VacationHours,
+        e.SickLeaveHours,
+        e.CurrentFlag,
+        e.rowguid AS RowGuid,
+        e.ModifiedDate,
+        -- Nombre completo del empleado
+        LTRIM(RTRIM(p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + ISNULL(p.LastName, ''))) AS NombreCompleto,
+        -- Departamento actual
+        CAST(d.DepartmentID AS INT) AS DepartmentID,
+        d.Name as DepartmentName,
+        d.GroupName,
+        edh.StartDate as DepartmentStartDate
+    FROM HumanResources.Employee e
+    INNER JOIN Person.Person p ON e.BusinessEntityID = p.BusinessEntityID
+    LEFT JOIN HumanResources.EmployeeDepartmentHistory edh ON e.BusinessEntityID = edh.BusinessEntityID 
+        AND edh.EndDate IS NULL
+    LEFT JOIN HumanResources.Department d ON edh.DepartmentID = d.DepartmentID
+    WHERE e.CurrentFlag = 1
+    ORDER BY p.LastName, p.FirstName;
+END
+GO
+
+-- Ejecutar el SP para verificar que funciona
+-- EXEC usp_GetAllEmployees_Sagastume

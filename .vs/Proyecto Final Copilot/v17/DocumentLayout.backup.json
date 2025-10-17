@@ -3,8 +3,32 @@
   "WorkspaceRootPath": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{4A63F306-A841-421E-83B3-09ED2238948B}|AdventureWorks.Enterprise.Api\\AdventureWorks.Enterprise.Api.csproj|c:\\users\\mariamsagastume\\source\\repos\\proyecto final copilot\\adventureworks.enterprise.api\\sql\\usp_getallemployees_sagastume.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{4A63F306-A841-421E-83B3-09ED2238948B}|AdventureWorks.Enterprise.Api\\AdventureWorks.Enterprise.Api.csproj|solutionrelative:adventureworks.enterprise.api\\sql\\usp_getallemployees_sagastume.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{92962C74-7924-4B1F-9ADB-CD5F3A75EC41}|AdventureWorks.Enterprise.WebApp\\AdventureWorks.Enterprise.WebApp.csproj|c:\\users\\mariamsagastume\\source\\repos\\proyecto final copilot\\adventureworks.enterprise.webapp\\models\\humanresources\\employeemodels.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{92962C74-7924-4B1F-9ADB-CD5F3A75EC41}|AdventureWorks.Enterprise.WebApp\\AdventureWorks.Enterprise.WebApp.csproj|solutionrelative:adventureworks.enterprise.webapp\\models\\humanresources\\employeemodels.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4A63F306-A841-421E-83B3-09ED2238948B}|AdventureWorks.Enterprise.Api\\AdventureWorks.Enterprise.Api.csproj|c:\\users\\mariamsagastume\\source\\repos\\proyecto final copilot\\adventureworks.enterprise.api\\models\\humanresources\\employee.dto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{4A63F306-A841-421E-83B3-09ED2238948B}|AdventureWorks.Enterprise.Api\\AdventureWorks.Enterprise.Api.csproj|solutionrelative:adventureworks.enterprise.api\\models\\humanresources\\employee.dto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{92962C74-7924-4B1F-9ADB-CD5F3A75EC41}|AdventureWorks.Enterprise.WebApp\\AdventureWorks.Enterprise.WebApp.csproj|c:\\users\\mariamsagastume\\source\\repos\\proyecto final copilot\\adventureworks.enterprise.webapp\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{92962C74-7924-4B1F-9ADB-CD5F3A75EC41}|AdventureWorks.Enterprise.WebApp\\AdventureWorks.Enterprise.WebApp.csproj|solutionrelative:adventureworks.enterprise.webapp\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{92962C74-7924-4B1F-9ADB-CD5F3A75EC41}|AdventureWorks.Enterprise.WebApp\\AdventureWorks.Enterprise.WebApp.csproj|c:\\users\\mariamsagastume\\source\\repos\\proyecto final copilot\\adventureworks.enterprise.webapp\\components\\pages\\humanresources\\employeedetails.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{92962C74-7924-4B1F-9ADB-CD5F3A75EC41}|AdventureWorks.Enterprise.WebApp\\AdventureWorks.Enterprise.WebApp.csproj|solutionrelative:adventureworks.enterprise.webapp\\components\\pages\\humanresources\\employeedetails.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{92962C74-7924-4B1F-9ADB-CD5F3A75EC41}|AdventureWorks.Enterprise.WebApp\\AdventureWorks.Enterprise.WebApp.csproj|c:\\users\\mariamsagastume\\source\\repos\\proyecto final copilot\\adventureworks.enterprise.webapp\\components\\pages\\humanresources\\employeeslist.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{92962C74-7924-4B1F-9ADB-CD5F3A75EC41}|AdventureWorks.Enterprise.WebApp\\AdventureWorks.Enterprise.WebApp.csproj|solutionrelative:adventureworks.enterprise.webapp\\components\\pages\\humanresources\\employeeslist.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D107F4C8-89CC-BEA8-D3D7-CA6B7733353D}|Elementos de la soluci\u00F3n{D107F4C8-89CC-BEA8-D3D7-CA6B7733353D}|C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\USER_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{D107F4C8-89CC-BEA8-D3D7-CA6B7733353D}|Elementos de la soluci\u00F3n{D107F4C8-89CC-BEA8-D3D7-CA6B7733353D}|solutionrelative:USER_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{4A63F306-A841-421E-83B3-09ED2238948B}|AdventureWorks.Enterprise.Api\\AdventureWorks.Enterprise.Api.csproj|c:\\users\\mariamsagastume\\source\\repos\\proyecto final copilot\\adventureworks.enterprise.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -33,6 +57,10 @@
     {
       "AbsoluteMoniker": "D:0:0:{4A63F306-A841-421E-83B3-09ED2238948B}|AdventureWorks.Enterprise.Api\\AdventureWorks.Enterprise.Api.csproj|c:\\users\\mariamsagastume\\source\\repos\\proyecto final copilot\\adventureworks.enterprise.api\\controllers\\customerscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{4A63F306-A841-421E-83B3-09ED2238948B}|AdventureWorks.Enterprise.Api\\AdventureWorks.Enterprise.Api.csproj|solutionrelative:adventureworks.enterprise.api\\controllers\\customerscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4A63F306-A841-421E-83B3-09ED2238948B}|AdventureWorks.Enterprise.Api\\AdventureWorks.Enterprise.Api.csproj|c:\\users\\mariamsagastume\\source\\repos\\proyecto final copilot\\adventureworks.enterprise.api\\sql\\usp_getallemployees_sagastume.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
+      "RelativeMoniker": "D:0:0:{4A63F306-A841-421E-83B3-09ED2238948B}|AdventureWorks.Enterprise.Api\\AdventureWorks.Enterprise.Api.csproj|solutionrelative:adventureworks.enterprise.api\\sql\\usp_getallemployees_sagastume.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
     }
   ],
   "DocumentGroupContainers": [
@@ -42,7 +70,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 5,
           "Children": [
             {
               "$type": "Bookmark",
@@ -58,7 +86,79 @@
             },
             {
               "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "EmployeeModels.cs",
+              "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.WebApp\\Models\\HumanResources\\EmployeeModels.cs",
+              "RelativeDocumentMoniker": "AdventureWorks.Enterprise.WebApp\\Models\\HumanResources\\EmployeeModels.cs",
+              "ToolTip": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.WebApp\\Models\\HumanResources\\EmployeeModels.cs",
+              "RelativeToolTip": "AdventureWorks.Enterprise.WebApp\\Models\\HumanResources\\EmployeeModels.cs",
+              "ViewState": "AgIAACMAAAAAAAAAAAASwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-17T14:01:06.909Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Employee.Dto.cs",
+              "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\Models\\HumanResources\\Employee.Dto.cs",
+              "RelativeDocumentMoniker": "AdventureWorks.Enterprise.Api\\Models\\HumanResources\\Employee.Dto.cs",
+              "ToolTip": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\Models\\HumanResources\\Employee.Dto.cs",
+              "RelativeToolTip": "AdventureWorks.Enterprise.Api\\Models\\HumanResources\\Employee.Dto.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAADgvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-17T14:00:49.157Z"
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "usp_GetAllEmployees_Sagastume.sql ",
+              "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\SQL\\usp_GetAllEmployees_Sagastume.sql",
+              "RelativeDocumentMoniker": "AdventureWorks.Enterprise.Api\\SQL\\usp_GetAllEmployees_Sagastume.sql",
+              "ToolTip": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\SQL\\usp_GetAllEmployees_Sagastume.sql",
+              "RelativeToolTip": "AdventureWorks.Enterprise.Api\\SQL\\usp_GetAllEmployees_Sagastume.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-10-17T13:48:12.45Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "EmployeesList.razor",
+              "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.WebApp\\Components\\Pages\\HumanResources\\EmployeesList.razor",
+              "RelativeDocumentMoniker": "AdventureWorks.Enterprise.WebApp\\Components\\Pages\\HumanResources\\EmployeesList.razor",
+              "ToolTip": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.WebApp\\Components\\Pages\\HumanResources\\EmployeesList.razor",
+              "RelativeToolTip": "AdventureWorks.Enterprise.WebApp\\Components\\Pages\\HumanResources\\EmployeesList.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-10-17T13:38:52.346Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "EmployeeDetails.razor",
+              "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.WebApp\\Components\\Pages\\HumanResources\\EmployeeDetails.razor",
+              "RelativeDocumentMoniker": "AdventureWorks.Enterprise.WebApp\\Components\\Pages\\HumanResources\\EmployeeDetails.razor",
+              "ToolTip": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.WebApp\\Components\\Pages\\HumanResources\\EmployeeDetails.razor",
+              "RelativeToolTip": "AdventureWorks.Enterprise.WebApp\\Components\\Pages\\HumanResources\\EmployeeDetails.razor",
+              "ViewState": "AgIAADsBAAAAAAAAAAAkwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-10-17T13:41:09.222Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "USER_GUIDE.md",
+              "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\USER_GUIDE.md",
+              "RelativeDocumentMoniker": "USER_GUIDE.md",
+              "ToolTip": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\USER_GUIDE.md",
+              "RelativeToolTip": "USER_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-10-16T22:48:33.006Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.WebApp\\Program.cs",
               "RelativeDocumentMoniker": "AdventureWorks.Enterprise.WebApp\\Program.cs",
@@ -66,12 +166,11 @@
               "RelativeToolTip": "AdventureWorks.Enterprise.WebApp\\Program.cs",
               "ViewState": "AgIAAF8AAAAAAAAAAAAUwEcAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-16T21:40:50.041Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-16T21:40:50.041Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 7,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\Program.cs",
               "RelativeDocumentMoniker": "AdventureWorks.Enterprise.Api\\Program.cs",
@@ -79,12 +178,11 @@
               "RelativeToolTip": "AdventureWorks.Enterprise.Api\\Program.cs",
               "ViewState": "AgIAADUAAAAAAAAAAAAwwD8AAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-16T20:42:35.362Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-16T20:42:35.362Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 13,
               "Title": "CustomersController.cs",
               "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\Controllers\\CustomersController.cs",
               "RelativeDocumentMoniker": "AdventureWorks.Enterprise.Api\\Controllers\\CustomersController.cs",
@@ -92,12 +190,11 @@
               "RelativeToolTip": "AdventureWorks.Enterprise.Api\\Controllers\\CustomersController.cs",
               "ViewState": "AgIAABQAAAAAAAAAAAAowBwAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-16T20:25:42.497Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-16T20:25:42.497Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 8,
               "Title": "ApiService.cs",
               "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.WebApp\\Services\\ApiService.cs",
               "RelativeDocumentMoniker": "AdventureWorks.Enterprise.WebApp\\Services\\ApiService.cs",
@@ -105,25 +202,24 @@
               "RelativeToolTip": "AdventureWorks.Enterprise.WebApp\\Services\\ApiService.cs",
               "ViewState": "AgIAAB8AAAAAAAAAAAAMwCIAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-26T21:43:20.782Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-26T21:43:20.782Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 11,
               "Title": "EmployeesController.cs",
               "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\Controllers\\EmployeesController.cs",
               "RelativeDocumentMoniker": "AdventureWorks.Enterprise.Api\\Controllers\\EmployeesController.cs",
               "ToolTip": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\Controllers\\EmployeesController.cs",
               "RelativeToolTip": "AdventureWorks.Enterprise.Api\\Controllers\\EmployeesController.cs",
-              "ViewState": "AgIAAIQBAAAAAAAAAAAwwDEAAAAIAAAAAAAAAA==",
+              "ViewState": "AgIAAHQBAAAAAAAAAEBVwDEAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-10-16T21:12:20.625Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 10,
               "Title": "Employee.cs",
               "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\Data\\Employee.cs",
               "RelativeDocumentMoniker": "AdventureWorks.Enterprise.Api\\Data\\Employee.cs",
@@ -131,12 +227,11 @@
               "RelativeToolTip": "AdventureWorks.Enterprise.Api\\Data\\Employee.cs",
               "ViewState": "AgIAACwAAAAAAAAAAIA3wEEAAABcAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-16T21:14:31.421Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-16T21:14:31.421Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 9,
               "Title": "ApiKeyMiddleware.cs",
               "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\Middleware\\ApiKeyMiddleware.cs",
               "RelativeDocumentMoniker": "AdventureWorks.Enterprise.Api\\Middleware\\ApiKeyMiddleware.cs",
@@ -144,12 +239,11 @@
               "RelativeToolTip": "AdventureWorks.Enterprise.Api\\Middleware\\ApiKeyMiddleware.cs",
               "ViewState": "AgIAAEwAAAAAAAAAAAAewF8AAAAgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-16T21:24:21.586Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-16T21:24:21.586Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 12,
               "Title": "appsettings.json",
               "DocumentMoniker": "C:\\Users\\mariamsagastume\\source\\repos\\Proyecto Final Copilot\\AdventureWorks.Enterprise.Api\\appsettings.json",
               "RelativeDocumentMoniker": "AdventureWorks.Enterprise.Api\\appsettings.json",
@@ -157,8 +251,7 @@
               "RelativeToolTip": "AdventureWorks.Enterprise.Api\\appsettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-10-16T21:09:02.108Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-16T21:09:02.108Z"
             }
           ]
         }
