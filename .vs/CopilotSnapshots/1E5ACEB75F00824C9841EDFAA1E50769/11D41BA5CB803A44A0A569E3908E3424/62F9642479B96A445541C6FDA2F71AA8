@@ -1,0 +1,348 @@
+﻿@page "/production/products"
+@using AdventureWorks.Enterprise.WebApp.Models.Production
+@using AdventureWorks.Enterprise.WebApp.Services
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Components.Web
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Lista de Productos - Portal Producción</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-boxes text-warning"></i>
+                Productos e Inventario
+            </h1>
+            <p class="text-muted">Gestión de productos y control de inventario</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-warning" @onclick="CargarProductos">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+            <button class="btn btn-danger ms-2" @onclick="VerReporteBajoInventario">
+                <i class="fas fa-exclamation-triangle"></i> Bajo Inventario
+            </button>
+            <button class="btn btn-success ms-2" @onclick="NuevoProducto">
+                <i class="fas fa-plus"></i> Nuevo Producto
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center p-4">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando productos...</p>
+        </div>
+    }
+    else if (productos?.Any() == true)
+    {
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-cube"></i> Total Productos
+                        </h5>
+                        <h3>@productos.Count</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-check-circle"></i> Terminados
+                        </h5>
+                        <h3>@productos.Count(p => p.FinishedGoodsFlag)</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-cogs"></i> En Fabricación
+                        </h5>
+                        <h3>@productos.Count(p => p.MakeFlag)</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-dollar-sign"></i> Valor Promedio
+                        </h5>
+                        <h3>@productos.Average(p => p.ListPrice).ToString("C")</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-table"></i>
+                            Catálogo de Productos (@productos.Count)
+                        </h5>
+                    </div>
+                    <div class="col-auto">
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" placeholder="Buscar producto..." @bind="filtroTexto" @onkeyup="FiltrarProductos">
+                            <button class="btn btn-outline-secondary" @onclick="FiltrarProductos">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Número</th>
+                                <th>Color</th>
+                                <th>Precio Lista</th>
+                                <th>Costo Estándar</th>
+                                <th>Stock Seguridad</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var producto in productosFiltrados)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong class="text-warning">@producto.ProductID</strong>
+                                    </td>
+                                    <td>
+                                        <strong>@producto.Name</strong>
+                                        @if (!string.IsNullOrEmpty(producto.Size))
+                                        {
+                                            <br><small class="text-muted">Tamaño: @producto.Size</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">@producto.ProductNumber</span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(producto.Color))
+                                        {
+                                            <span class="badge" style="background-color: @GetColorCode(producto.Color);">
+                                                @producto.Color
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">@producto.ListPrice.ToString("C")</strong>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@producto.StandardCost.ToString("C")</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetStockLevelBadgeClass(producto.SafetyStockLevel)">
+                                            @producto.SafetyStockLevel
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (producto.SellEndDate.HasValue)
+                                        {
+                                            <span class="badge bg-secondary">Descontinuado</span>
+                                        }
+                                        else if (producto.FinishedGoodsFlag)
+                                        {
+                                            <span class="badge bg-success">Terminado</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info">En Proceso</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                @onclick="() => VerDetalle(producto.ProductID)">
+                                            <i class="fas fa-eye"></i> Ver
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning ms-1" 
+                                                @onclick="() => EditarProducto(producto.ProductID)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        @if (!producto.SellEndDate.HasValue)
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger ms-1" 
+                                                    @onclick="() => DescontinuarProducto(producto.ProductID)">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            No se encontraron productos.
+        </div>
+    }
+</div>
+
+@code {
+    private List<ProductDto>? productos;
+    private List<ProductDto> productosFiltrados = new();
+    private bool isLoading = true;
+    private string filtroTexto = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarProductos();
+    }
+
+    private async Task CargarProductos()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+            
+            productos = await ApiService.GetProductosAsync();
+            productosFiltrados = productos ?? new List<ProductDto>();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar productos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void FiltrarProductos()
+    {
+        if (productos == null) return;
+
+        if (string.IsNullOrWhiteSpace(filtroTexto))
+        {
+            productosFiltrados = productos;
+        }
+        else
+        {
+            productosFiltrados = productos.Where(p => 
+                p.Name.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ||
+                p.ProductNumber.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ||
+                (p.Color?.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ?? false)
+            ).ToList();
+        }
+        
+        StateHasChanged();
+    }
+
+    private void VerDetalle(int productoId)
+    {
+        Navigation.NavigateTo($"/production/products/{productoId}");
+    }
+
+    private void EditarProducto(int productoId)
+    {
+        // TODO: Implementar navegación a formulario de edición
+        JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de edición pendiente de implementar");
+    }
+
+    private void NuevoProducto()
+    {
+        // TODO: Implementar navegación a formulario de creación
+        JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de creación pendiente de implementar");
+    }
+
+    private void VerReporteBajoInventario()
+    {
+        Navigation.NavigateTo("/production/reports/low-inventory");
+    }
+
+    private async Task DescontinuarProducto(int productoId)
+    {
+        var confirmado = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"¿Está seguro que desea descontinuar el producto {productoId}?");
+            
+        if (confirmado)
+        {
+            try
+            {
+                var resultado = await ApiService.DeleteProductoAsync(productoId);
+                if (resultado)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Producto descontinuado correctamente");
+                    await CargarProductos();
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Error al descontinuar producto");
+                }
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+            }
+        }
+    }
+
+    private string GetColorCode(string color)
+    {
+        return color.ToLower() switch
+        {
+            "red" => "#dc3545",
+            "blue" => "#0d6efd",
+            "green" => "#198754",
+            "yellow" => "#ffc107",
+            "black" => "#212529",
+            "white" => "#f8f9fa",
+            "silver" => "#6c757d",
+            "multi" => "#6f42c1",
+            _ => "#6c757d"
+        };
+    }
+
+    private string GetStockLevelBadgeClass(short stockLevel)
+    {
+        if (stockLevel < 50)
+            return "bg-danger";
+        else if (stockLevel < 100)
+            return "bg-warning";
+        else
+            return "bg-success";
+    }
+}
+
+<style>
+    .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+</style>

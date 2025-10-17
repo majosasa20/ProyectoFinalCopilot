@@ -1,0 +1,237 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using AdventureWorks.Enterprise.Api.Controllers;
+using AdventureWorks.Enterprise.Api.Data;
+using AdventureWorks.Enterprise.Api.Tests.Infrastructure;
+
+namespace AdventureWorks.Enterprise.Api.Tests.Controllers
+{
+    /// <summary>
+    /// Tests para el controlador de Clientes
+    /// </summary>
+    public class ClientesControllerTests : BaseControllerTest
+    {
+        private readonly ClientesController _controller;
+        private readonly Mock<ILogger<ClientesController>> _mockLogger;
+
+        public ClientesControllerTests()
+        {
+            _mockLogger = CreateMockLogger<ClientesController>();
+            _controller = new ClientesController(Context, _mockLogger.Object);
+            SeedTestData();
+        }
+
+        #region ObtenerClientes Tests
+
+        [Fact]
+        public async Task ObtenerClientes_DeberiaRetornarListaDeClientes_CuandoExistenClientes()
+        {
+            // Act
+            var result = await _controller.ObtenerClientes();
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var clientes = okResult?.Value as List<Customer>;
+            clientes.Should().NotBeNull();
+            clientes.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public async Task ObtenerClientes_DeberiaRetornarError500_CuandoOcurreExcepcion()
+        {
+            // Arrange
+            var mockLogger = CreateMockLogger<ClientesController>();
+            var controller = new ClientesController(null!, mockLogger.Object); // Forzar excepción
+
+            // Act
+            var result = await controller.ObtenerClientes();
+
+            // Assert
+            result.Result.Should().BeOfType<ObjectResult>();
+            var objectResult = result.Result as ObjectResult;
+            objectResult?.StatusCode.Should().Be(500);
+        }
+
+        #endregion
+
+        #region ObtenerCliente Tests
+
+        [Fact]
+        public async Task ObtenerCliente_DeberiaRetornarCliente_CuandoExisteCliente()
+        {
+            // Arrange
+            var clienteId = 1;
+
+            // Act
+            var result = await _controller.ObtenerCliente(clienteId);
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var cliente = okResult?.Value as Customer;
+            cliente.Should().NotBeNull();
+            cliente?.CustomerID.Should().Be(clienteId);
+        }
+
+        [Fact]
+        public async Task ObtenerCliente_DeberiaRetornarNotFound_CuandoNoExisteCliente()
+        {
+            // Arrange
+            var clienteId = 999;
+
+            // Act
+            var result = await _controller.ObtenerCliente(clienteId);
+
+            // Assert
+            result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        #endregion
+
+        #region CrearCliente Tests
+
+        [Fact]
+        public async Task CrearCliente_DeberiaCrearCliente_CuandoDatosValidos()
+        {
+            // Arrange
+            var nuevoCliente = new Customer
+            {
+                PersonID = null,
+                StoreID = null,
+                TerritoryID = 1,
+                AccountNumber = "AW00000003"
+            };
+
+            // Act
+            var result = await _controller.CrearCliente(nuevoCliente);
+
+            // Assert
+            result.Result.Should().BeOfType<CreatedAtActionResult>();
+            var createdResult = result.Result as CreatedAtActionResult;
+            var clienteCreado = createdResult?.Value as Customer;
+            clienteCreado.Should().NotBeNull();
+            clienteCreado?.AccountNumber.Should().Be(nuevoCliente.AccountNumber);
+            clienteCreado?.RowGuid.Should().NotBe(Guid.Empty);
+        }
+
+        [Fact]
+        public async Task CrearCliente_DeberiaRetornarBadRequest_CuandoModeloInvalido()
+        {
+            // Arrange
+            var clienteInvalido = new Customer(); // Modelo inválido
+            _controller.ModelState.AddModelError("AccountNumber", "Campo requerido");
+
+            // Act
+            var result = await _controller.CrearCliente(clienteInvalido);
+
+            // Assert
+            result.Result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        #endregion
+
+        #region ActualizarCliente Tests
+
+        [Fact]
+        public async Task ActualizarCliente_DeberiaActualizarCliente_CuandoDatosValidos()
+        {
+            // Arrange
+            var clienteId = 1;
+            var clienteActualizado = new Customer
+            {
+                CustomerID = clienteId,
+                PersonID = null,
+                StoreID = null,
+                TerritoryID = 2, // Cambiar territorio
+                AccountNumber = "AW00000001-UPDATED"
+            };
+
+            // Act
+            var result = await _controller.ActualizarCliente(clienteId, clienteActualizado);
+
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+            
+            // Verificar que se actualizó en la base de datos
+            var clienteEnDb = await Context.Customers.FindAsync(clienteId);
+            clienteEnDb?.TerritoryID.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task ActualizarCliente_DeberiaRetornarBadRequest_CuandoIdNoCoincide()
+        {
+            // Arrange
+            var clienteId = 1;
+            var clienteActualizado = new Customer { CustomerID = 2 };
+
+            // Act
+            var result = await _controller.ActualizarCliente(clienteId, clienteActualizado);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        [Fact]
+        public async Task ActualizarCliente_DeberiaRetornarNotFound_CuandoClienteNoExiste()
+        {
+            // Arrange
+            var clienteId = 999;
+            var clienteActualizado = new Customer { CustomerID = clienteId };
+            _controller.ModelState.Clear(); // Limpiar estado del modelo
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await _controller.ActualizarCliente(clienteId, clienteActualizado));
+        }
+
+        #endregion
+
+        #region EliminarCliente Tests
+
+        [Fact]
+        public async Task EliminarCliente_DeberiaEliminarCliente_CuandoClienteNoTieneOrdenes()
+        {
+            // Arrange
+            var clienteId = 2; // Cliente sin órdenes
+
+            // Act
+            var result = await _controller.EliminarCliente(clienteId);
+
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+            
+            // Verificar que se eliminó de la base de datos
+            var clienteEnDb = await Context.Customers.FindAsync(clienteId);
+            clienteEnDb.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task EliminarCliente_DeberiaRetornarBadRequest_CuandoClienteTieneOrdenes()
+        {
+            // Arrange
+            var clienteId = 1; // Cliente con órdenes
+
+            // Act
+            var result = await _controller.EliminarCliente(clienteId);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        [Fact]
+        public async Task EliminarCliente_DeberiaRetornarNotFound_CuandoClienteNoExiste()
+        {
+            // Arrange
+            var clienteId = 999;
+
+            // Act
+            var result = await _controller.EliminarCliente(clienteId);
+
+            // Assert
+            result.Result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        #endregion
+    }
+}

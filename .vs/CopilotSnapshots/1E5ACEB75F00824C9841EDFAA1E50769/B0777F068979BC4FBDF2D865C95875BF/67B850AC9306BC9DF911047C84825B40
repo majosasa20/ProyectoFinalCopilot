@@ -1,0 +1,236 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using AdventureWorks.Enterprise.Api.Models.Sales;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controlador para la gestión de órdenes de venta
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OrdenesController : ControllerBase
+    {
+        private readonly ILogger<OrdenesController> _logger;
+        private static List<SalesOrderHeaderDto> _ordenes = new();
+        private static List<SalesOrderDetailDto> _detallesOrdenes = new();
+
+        public OrdenesController(ILogger<OrdenesController> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Obtener todas las órdenes de venta
+        /// </summary>
+        /// <returns>Lista de órdenes de venta</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<SalesOrderHeaderDto>>> ObtenerOrdenes()
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo todas las órdenes en {Timestamp}", DateTime.UtcNow);
+                return Ok(_ordenes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener las órdenes");
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Obtener orden de venta por ID
+        /// </summary>
+        /// <param name="id">ID de la orden de venta</param>
+        /// <returns>Detalles de la orden de venta</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<SalesOrderHeaderDto>> ObtenerOrden(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo orden {OrdenId} en {Timestamp}", id, DateTime.UtcNow);
+                
+                var orden = _ordenes.FirstOrDefault(o => o.SalesOrderID == id);
+                if (orden == null)
+                {
+                    _logger.LogWarning("Orden {OrdenId} no encontrada", id);
+                    return NotFound($"Orden con ID {id} no encontrada");
+                }
+
+                return Ok(orden);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener la orden {OrdenId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Obtener detalles de orden para una orden específica
+        /// </summary>
+        /// <param name="id">ID de la orden de venta</param>
+        /// <returns>Lista de detalles de la orden</returns>
+        [HttpGet("{id}/detalles")]
+        public async Task<ActionResult<IEnumerable<SalesOrderDetailDto>>> ObtenerDetallesOrden(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo detalles de orden para orden {OrdenId} en {Timestamp}", id, DateTime.UtcNow);
+                
+                var detalles = _detallesOrdenes.Where(d => d.SalesOrderID == id).ToList();
+                return Ok(detalles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener detalles de orden para orden {OrdenId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Crear una nueva orden de venta
+        /// </summary>
+        /// <param name="orden">Datos de la orden de venta</param>
+        /// <returns>Orden de venta creada</returns>
+        [HttpPost]
+        public async Task<ActionResult<SalesOrderHeaderDto>> CrearOrden([FromBody] SalesOrderHeaderDto orden)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Estado del modelo inválido para crear orden");
+                    return BadRequest(ModelState);
+                }
+
+                orden.SalesOrderID = _ordenes.Count > 0 ? _ordenes.Max(o => o.SalesOrderID) + 1 : 1;
+                orden.SalesOrderNumber = $"SO{orden.SalesOrderID:000000}";
+                orden.RowGuid = Guid.NewGuid();
+                orden.ModifiedDate = DateTime.UtcNow;
+                orden.TotalDue = orden.SubTotal + orden.TaxAmt + orden.Freight;
+
+                _ordenes.Add(orden);
+                
+                _logger.LogInformation("Orden {OrdenId} creada en {Timestamp}", orden.SalesOrderID, DateTime.UtcNow);
+                
+                return CreatedAtAction(nameof(ObtenerOrden), new { id = orden.SalesOrderID }, orden);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear la orden");
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Actualizar una orden de venta existente
+        /// </summary>
+        /// <param name="id">ID de la orden de venta</param>
+        /// <param name="orden">Datos actualizados de la orden de venta</param>
+        /// <returns>Sin contenido si es exitoso</returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> ActualizarOrden(int id, [FromBody] SalesOrderHeaderDto orden)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Estado del modelo inválido para actualizar orden {OrdenId}", id);
+                    return BadRequest(ModelState);
+                }
+
+                var ordenExistente = _ordenes.FirstOrDefault(o => o.SalesOrderID == id);
+                if (ordenExistente == null)
+                {
+                    _logger.LogWarning("Orden {OrdenId} no encontrada para actualizar", id);
+                    return NotFound($"Orden con ID {id} no encontrada");
+                }
+
+                // Actualizar propiedades
+                ordenExistente.RevisionNumber = orden.RevisionNumber;
+                ordenExistente.OrderDate = orden.OrderDate;
+                ordenExistente.DueDate = orden.DueDate;
+                ordenExistente.ShipDate = orden.ShipDate;
+                ordenExistente.Status = orden.Status;
+                ordenExistente.OnlineOrderFlag = orden.OnlineOrderFlag;
+                ordenExistente.CustomerID = orden.CustomerID;
+                ordenExistente.SalesPersonID = orden.SalesPersonID;
+                ordenExistente.TerritoryID = orden.TerritoryID;
+                ordenExistente.SubTotal = orden.SubTotal;
+                ordenExistente.TaxAmt = orden.TaxAmt;
+                ordenExistente.Freight = orden.Freight;
+                ordenExistente.TotalDue = orden.SubTotal + orden.TaxAmt + orden.Freight;
+                ordenExistente.ModifiedDate = DateTime.UtcNow;
+
+                _logger.LogInformation("Orden {OrdenId} actualizada en {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar la orden {OrdenId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Eliminar una orden de venta
+        /// </summary>
+        /// <param name="id">ID de la orden de venta</param>
+        /// <returns>Sin contenido si es exitoso</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> EliminarOrden(int id)
+        {
+            try
+            {
+                var orden = _ordenes.FirstOrDefault(o => o.SalesOrderID == id);
+                if (orden == null)
+                {
+                    _logger.LogWarning("Orden {OrdenId} no encontrada para eliminar", id);
+                    return NotFound($"Orden con ID {id} no encontrada");
+                }
+
+                // También eliminar detalles de la orden
+                var detalles = _detallesOrdenes.Where(d => d.SalesOrderID == id).ToList();
+                foreach (var detalle in detalles)
+                {
+                    _detallesOrdenes.Remove(detalle);
+                }
+
+                _ordenes.Remove(orden);
+                
+                _logger.LogInformation("Orden {OrdenId} eliminada en {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar la orden {OrdenId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Obtener órdenes por ID de cliente
+        /// </summary>
+        /// <param name="clienteId">ID del cliente</param>
+        /// <returns>Lista de órdenes para el cliente</returns>
+        [HttpGet("cliente/{clienteId}")]
+        public async Task<ActionResult<IEnumerable<SalesOrderHeaderDto>>> ObtenerOrdenesPorCliente(int clienteId)
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo órdenes para cliente {ClienteId} en {Timestamp}", clienteId, DateTime.UtcNow);
+                
+                var ordenesCliente = _ordenes.Where(o => o.CustomerID == clienteId).ToList();
+                return Ok(ordenesCliente);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener órdenes para cliente {ClienteId}", clienteId);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+    }
+}

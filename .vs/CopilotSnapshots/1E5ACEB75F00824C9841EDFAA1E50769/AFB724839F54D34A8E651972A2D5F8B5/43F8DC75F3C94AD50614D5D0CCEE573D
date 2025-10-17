@@ -1,0 +1,167 @@
+﻿# PROMPTS - AdventureWorks Enterprise System
+*Historial de prompts utilizados para el desarrollo del sistema AdventureWorks Enterprise*
+
+---
+
+## Fase 1: Configuración Inicial y Estructura del Proyecto
+
+### **Prompt inicial para configuración del workspace:**
+> "@workspace Analiza la estructura del proyecto AdventureWorks y crea la organización de carpetas y archivos necesarios para el desarrollo de un sistema empresarial completo con API y WebApp."
+
+### **Prompt para configuración de Entity Framework:**
+> "Configurar Entity Framework para conectar con la base de datos AdventureWorks2014, incluyendo DbContext, modelos de datos principales y connection strings."
+
+---
+
+## Fase 2: Backend - Modelos y DTOs
+
+### **Prompt para generar modelos de datos:**
+> "@workspace Crear los modelos de Entity Framework para las áreas principales: HumanResources (Employee, Department), Sales (SalesOrderHeader, SalesOrderDetail, Customer), y Production (Product, ProductInventory). Incluir relaciones y anotaciones necesarias."
+
+### **Prompt para DTOs de transferencia:**
+> "Generar DTOs para cada área funcional que permitan la transferencia eficiente de datos entre la API y la aplicación web, incluyendo DTOs para reportes específicos como empleados por tiempo en departamento y productos más vendidos."
+
+---
+
+## Fase 3: Backend - Controladores API
+
+### **Prompt para generar el EmployeesController:**
+> "@workspace Crear un controlador completo para empleados (EmpleadosController) que incluya operaciones CRUD, validaciones, logging, y manejo de errores. Debe incluir endpoints para obtener empleados, crear, actualizar, eliminar y generar reportes de tiempo en departamento."
+
+### **Prompt para generar el OrdersController:**
+> "@workspace Crear un controlador para órdenes de venta (OrdenesController) que maneje SalesOrderHeader y SalesOrderDetail, incluyendo operaciones CRUD, búsqueda por cliente, y reportes de productos más vendidos. Implementar validaciones de negocio y logging detallado."
+
+### **Prompt para generar el ProductsController:**
+> "@workspace Crear un controlador para productos (ProductosController) que incluya gestión de inventario, operaciones CRUD, búsqueda por categoría, y reportes de bajo inventario. Implementar validaciones para productos con órdenes existentes."
+
+### **Prompt para generar controladores auxiliares:**
+> "Crear controladores para CustomersController, DepartmentsController, WorkOrdersController y TestController con operaciones CRUD completas, validaciones apropiadas y endpoints de diagnóstico."
+
+---
+
+## Fase 4: Backend - Stored Procedures
+
+### **Prompt para documentar Stored Procedures:**
+> "Generar documentación completa de todos los stored procedures necesarios para el sistema, organizados por área funcional (HumanResources, Sales, Production) con sufijo '_Sagastume'. Incluir procedimientos para operaciones CRUD y reportes especializados."
+
+### **Prompt para SP de reportes específicos:**
+> "Crear stored procedures para reportes especializados: usp_EmpleadosConMasTiempoEnDepartamento_Sagastume, usp_Top10ProductosMasVendidos_Sagastume, y usp_ProductosConBajoInventario_Sagastume con parámetros apropiados y optimización de performance."
+
+---
+
+## Fase 5: Backend - Middleware y Configuración
+
+### **Prompt para API Key Middleware:**
+> "Implementar middleware de autenticación por API Key para proteger los endpoints de la API, incluyendo configuración en Program.cs, validación de headers, logging de intentos de acceso y manejo de errores de autenticación."
+
+### **Prompt para configuración de CORS y Swagger:**
+> "Configurar CORS para permitir conexiones desde el frontend Blazor, implementar Swagger con documentación automática y requerimiento de API Key, y establecer políticas de seguridad apropiadas."
+
+---
+
+## Fase 6: Frontend - Configuración Blazor
+
+### **Prompt para configuración inicial del WebApp:**
+> "Configurar el proyecto Blazor Server con componentes interactivos, servicios de API, HttpClient configurado con BaseAddress y API Key, y estructura de carpetas organizada por áreas funcionales."
+
+### **Prompt para ApiService:**
+> "Crear un servicio ApiService completo para comunicación con la API, incluyendo métodos para todas las operaciones CRUD de empleados, órdenes, productos, y reportes. Implementar manejo de errores, logging detallado y validación de configuración del HttpClient."
+
+---
+
+## Fase 7: Frontend - Componentes Blazor
+
+### **Prompt para NavMenu y Layout:**
+> "en el archivo NavMenu.razor agrega un menú y que haga referencia a cada una de las páginas .razor creadas"
+
+### **Prompt para EmployeesList.razor:**
+> "Crear un componente Blazor para mostrar la lista de empleados con tabla responsiva, filtros, paginación, acciones CRUD, y integración completa con ApiService. Incluir manejo de estados de carga, errores y confirmaciones de usuario."
+
+### **Prompt para OrdersList.razor:**
+> "Desarrollar componente para gestión de órdenes de venta con visualización en tabla, filtros por estado y cliente, detalles expandibles, y navegación a páginas de detalle. Implementar indicadores visuales de estado y métricas de resumen."
+
+### **Prompt para ProductList.razor:**
+> "Crear componente para gestión de productos con inventario, incluyendo cards de métricas, tabla con filtros, indicadores de stock, y navegación a reportes. Implementar estados visuales para productos descontinuados y bajo inventario."
+
+### **Prompt para componentes de reportes:**
+> "Desarrollar componentes especializados para reportes: EmployeeTimeReport.razor para empleados con más tiempo en departamento, Top10ProductsReport.razor para productos más vendidos, y LowInventoryReport.razor para productos con bajo inventario. Incluir gráficos, podios de ganadores y funcionalidades de exportación."
+
+---
+
+## Fase 8: Resolución de Problemas
+
+### **Prompt para corrección de errores Razor:**
+> "Corregir #errors en #file:'ProductList.razor' , #file:'NavMenu.razor' , #file:'Top10ProductsReport.razor' - principalmente problemas con caracteres < en switch expressions que están siendo interpretados como HTML por Razor."
+
+### **Prompt para corrección de errores CSS:**
+> "Corregir #errors en #file:'LowInventoryReport.razor' , #file:'EmployeeTimeReport.razor' , #file:'OrderDetails.razor' relacionados con @media queries en bloques <style> que Razor interpreta como código C#."
+
+### **Prompt para corrección de tipos en tests:**
+> "Corregir #errors en #file:'ProductosControllerTests.cs' , #file:'ClientesControllerTests.cs' relacionados con conversiones de tipos (int a short) y acceso a propiedades Result en ActionResult."
+
+### **Prompt para resolución de problemas de configuración:**
+> "Corregir el código en #file:'ApiService.cs' , #file:'AdventureWorks.Enterprise.WebApp\Program.cs' , #file:'EmployeesList.razor' y #file:'EmployeesController.cs' para que valides todas las configuraciones porque estoy teniendo este error al dar clic a la página de empleados: Error al cargar empleados: An invalid request URI was provided. Either the request URI must be an absolute URI or BaseAddress must be set."
+
+---
+
+## Fase 9: Optimización y Mejoras
+
+### **Prompt para mejoras de logging:**
+> "Implementar logging detallado con emojis para facilitar el debugging en todos los componentes del sistema, incluyendo validación de configuración del HttpClient, diagnóstico de conectividad y información paso a paso de las operaciones."
+
+### **Prompt para endpoints de diagnóstico:**
+> "Crear endpoints de diagnóstico en TestController (/ping, /status, /health) para verificar el estado de la API, conectividad, configuración de API Key y información del sistema. Incluir funcionalidades de test de conectividad en el frontend."
+
+### **Prompt para robustecimiento del sistema:**
+> "Mejorar la configuración del HttpClient en Program.cs del WebApp con manejo robusto de errores, validación de URL con Uri.TryCreate(), logging detallado durante la configuración, test de conectividad automático al iniciar, y diagnóstico completo de configuración."
+
+---
+
+## Prompts de Mantenimiento y Documentación
+
+### **Prompt para compilación final:**
+> "sí corrige todos los erroes, por favor" - Para resolución integral de todos los errores de compilación en el proyecto.
+
+### **Prompt para documentación de SPs:**
+> "tengo una petición algo extensa, puedes revisar todo el historial del chat abierto, cada consulta que te hice, las más extensas y que consideres más importantes (como el módulo de ventas, para generar los controladores, los SPs, las consultas inciales cuando creaste las carpetas según las áreas, etc.) todo esto necesito que lo guardes en un archivo llamado PROMPTS.md"
+
+---
+
+## Notas Técnicas Importantes
+
+### **Tecnologías Utilizadas:**
+- .NET 8
+- Blazor Server con componentes interactivos
+- Entity Framework Core
+- SQL Server (AdventureWorks2014)
+- Swagger/OpenAPI
+- API Key Authentication
+
+### **Patrones Implementados:**
+- Repository Pattern (mediante controladores)
+- DTO Pattern para transferencia de datos
+- Middleware Pattern para autenticación
+- Service Pattern para ApiService
+- Component Pattern en Blazor
+
+### **Características del Sistema:**
+- API RESTful completa con operaciones CRUD
+- Frontend Blazor responsivo y moderno
+- Sistema de reportes especializados
+- Autenticación por API Key
+- Logging detallado para debugging
+- Manejo robusto de errores
+- Validaciones de negocio
+- Diseño responsive con Bootstrap
+
+### **Áreas Funcionales Implementadas:**
+1. **Human Resources**: Gestión de empleados y departamentos
+2. **Sales**: Gestión de órdenes, clientes y reportes de ventas
+3. **Production**: Gestión de productos, inventario y órdenes de trabajo
+4. **Reporting**: Reportes especializados con visualizaciones
+
+---
+
+*Documento generado a partir del historial completo de desarrollo del proyecto AdventureWorks Enterprise*
+*Fecha: 2024-12-17*
+*Desarrollador: Sistema con asistencia de GitHub Copilot*

@@ -1,0 +1,395 @@
+﻿@page "/humanresources/employees/report"
+@using AdventureWorks.Enterprise.WebApp.Models.HumanResources
+@using AdventureWorks.Enterprise.WebApp.Services
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Components.Web
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Reporte Tiempo Departamento - Portal RRHH</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/humanresources/employees">Empleados</a>
+                    </li>
+                    <li class="breadcrumb-item active">Reporte Tiempo en Departamento</li>
+                </ol>
+            </nav>
+            <h1 class="h2">
+                <i class="fas fa-clock text-info"></i>
+                Empleados con Más Tiempo en Departamento
+            </h1>
+            <p class="text-muted">Reporte de empleados ordenados por antigüedad en su departamento actual</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="GenerarReporte">
+                <i class="fas fa-sync-alt"></i> Actualizar Reporte
+            </button>
+            <button class="btn btn-outline-secondary ms-2" @onclick="Regresar">
+                <i class="fas fa-arrow-left"></i> Regresar
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center p-4">
+            <div class="spinner-border text-info" role="status">
+                <span class="visually-hidden">Generando reporte...</span>
+            </div>
+            <p class="mt-2">Consultando datos de empleados...</p>
+        </div>
+    }
+    else if (reporte?.Any() == true)
+    {
+        <!-- Métricas Generales -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h3>@reporte.Count</h3>
+                        <p class="mb-0">Total Empleados</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h3>@reporte.Average(r => r.AniosEnDepartamento).ToString("F1")</h3>
+                        <p class="mb-0">Años Promedio</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h3>@reporte.Max(r => r.AniosEnDepartamento)</h3>
+                        <p class="mb-0">Máximo Años</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h3>@reporte.GroupBy(r => r.Departamento).Count()</h3>
+                        <p class="mb-0">Departamentos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 3 Empleados con Más Tiempo -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-trophy"></i> Top 3 Empleados con Mayor Antigüedad
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @for (int i = 0; i < Math.Min(3, reporte.Count); i++)
+                            {
+                                var empleado = reporte[i];
+                                var posicion = i + 1;
+                                <div class="col-md-4">
+                                    <div class="text-center employee-highlight p-3">
+                                        @if (posicion == 1)
+                                        {
+                                            <i class="fas fa-crown text-warning fa-2x mb-2"></i>
+                                        }
+                                        else if (posicion == 2)
+                                        {
+                                            <i class="fas fa-medal text-secondary fa-2x mb-2"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="fas fa-medal text-warning fa-2x mb-2"></i>
+                                        }
+                                        <h5 class="text-primary">@empleado.NombreCompleto</h5>
+                                        <p class="text-muted mb-1">@empleado.Cargo</p>
+                                        <p class="text-muted mb-2">@empleado.Departamento</p>
+                                        <span class="badge bg-success fs-6">
+                                            @empleado.AniosEnDepartamento años, @(empleado.DiasEnDepartamento % 365 / 30) meses
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla Completa -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list"></i>
+                            Reporte Completo de Empleados por Tiempo en Departamento
+                        </h5>
+                        <small>Ordenados por días en departamento actual (descendente)</small>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-light btn-sm" @onclick="ExportarReporte">
+                            <i class="fas fa-download"></i> Exportar
+                        </button>
+                        <button class="btn btn-outline-light btn-sm ms-2" @onclick="ImprimirReporte">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Posición</th>
+                                <th>Empleado</th>
+                                <th>Cargo</th>
+                                <th>Departamento</th>
+                                <th>Grupo</th>
+                                <th>Inicio Departamento</th>
+                                <th>Tiempo en Departamento</th>
+                                <th>Fecha Contratación</th>
+                                <th>Antigüedad Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < reporte.Count; i++)
+                            {
+                                var empleado = reporte[i];
+                                var posicion = i + 1;
+                                <tr class="@GetRowClass(posicion)">
+                                    <td class="text-center">
+                                        @if (posicion <= 3)
+                                        {
+                                            <span class="badge @GetPositionBadgeClass(posicion) fs-6">
+                                                @GetPositionIcon(posicion) @posicion
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-dark"># @posicion</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <strong class="text-primary">@empleado.NombreCompleto</strong>
+                                        <br><small class="text-muted">ID: @empleado.BusinessEntityID</small>
+                                    </td>
+                                    <td>
+                                        <span class="text-dark fw-bold">@empleado.Cargo</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">@empleado.Departamento</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">@empleado.GrupoDepartamento</small>
+                                    </td>
+                                    <td>
+                                        <small>@empleado.FechaInicioDepartamento.ToString("dd/MM/yyyy")</small>
+                                    </td>
+                                    <td>
+                                        <div class="text-center">
+                                            <span class="badge bg-success fs-6">
+                                                @empleado.AniosEnDepartamento años
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">(@empleado.DiasEnDepartamento días)</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small>@empleado.FechaContratacion.ToString("dd/MM/yyyy")</small>
+                                    </td>
+                                    <td>
+                                        <span class="text-info">
+                                            @CalcularAntiguedadTotal(empleado.FechaContratacion)
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="row">
+                    <div class="col">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Reporte generado el @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                        </small>
+                    </div>
+                    <div class="col-auto">
+                        <small class="text-muted">
+                            Solo empleados activos en su departamento actual
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen por Departamento -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-building"></i> Resumen por Departamento
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @foreach (var grupo in reporte.GroupBy(r => r.Departamento).OrderByDescending(g => g.Average(x => x.DiasEnDepartamento)))
+                            {
+                                <div class="col-md-4 mb-3">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-primary">@grupo.Key</h6>
+                                            <p class="card-text">
+                                                <strong>@grupo.Count()</strong> empleados<br>
+                                                <small class="text-muted">
+                                                    Promedio: @grupo.Average(x => x.AniosEnDepartamento).ToString("F1") años
+                                                </small>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            No se encontraron datos de empleados para generar el reporte.
+        </div>
+    }
+</div>
+
+@code {
+    private List<ReporteEmpleadosDepartamentoDto>? reporte;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GenerarReporte();
+    }
+
+    private async Task GenerarReporte()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+            
+            reporte = await ApiService.GetReporteEmpleadosTiempoDepartamentoAsync();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al generar reporte: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Regresar()
+    {
+        Navigation.NavigateTo("/humanresources/employees");
+    }
+
+    private void ExportarReporte()
+    {
+        JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de exportación pendiente de implementar");
+    }
+
+    private void ImprimirReporte()
+    {
+        JSRuntime.InvokeVoidAsync("window.print");
+    }
+
+    private string CalcularAntiguedadTotal(DateTime fechaContratacion)
+    {
+        var hoy = DateTime.Today;
+        var años = hoy.Year - fechaContratacion.Year;
+        if (fechaContratacion.Date > hoy.AddYears(-años)) años--;
+        return $"{años} años";
+    }
+
+    private string GetRowClass(int posicion) => posicion switch
+    {
+        1 => "table-warning",
+        2 => "table-light",
+        3 => "table-light",
+        _ => ""
+    };
+
+    private string GetPositionBadgeClass(int posicion) => posicion switch
+    {
+        1 => "bg-warning",
+        2 => "bg-secondary",
+        3 => "bg-info",
+        _ => "bg-light text-dark"
+    };
+
+    private string GetPositionIcon(int posicion) => posicion switch
+    {
+        1 => "🏆",
+        2 => "🥈",
+        3 => "🥉",
+        _ => "#"
+    };
+}
+
+<style>
+    .employee-highlight {
+        border-radius: 15px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+        margin: 0.5rem;
+    }
+    
+    .employee-highlight:hover {
+        transform: translateY(-5px);
+    }
+    
+    .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    .table-warning {
+        --bs-table-bg: rgba(255, 193, 7, 0.2);
+    }
+
+    @media print {
+        .btn, .breadcrumb, .card-header .row .col-auto {
+            display: none !important;
+        }
+        
+        .employee-highlight {
+            break-inside: avoid;
+        }
+    }
+</style>

@@ -1,0 +1,121 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">
+            <i class="fas fa-building"></i> AdventureWorks Enterprise
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="fas fa-home" aria-hidden="true"></span> Dashboard
+            </NavLink>
+        </div>
+
+        <!-- Portal de Recursos Humanos -->
+        <div class="nav-item px-3">
+            <h6 class="nav-header text-muted mt-3 mb-1">
+                <i class="fas fa-users"></i> Recursos Humanos
+            </h6>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="humanresources/employees">
+                <span class="fas fa-user-tie" aria-hidden="true"></span> Empleados
+            </NavLink>
+        </div>
+
+        <!-- Portal de Ventas -->
+        <div class="nav-item px-3">
+            <h6 class="nav-header text-muted mt-3 mb-1">
+                <i class="fas fa-chart-line"></i> Ventas
+            </h6>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="sales/orders">
+                <span class="fas fa-shopping-cart" aria-hidden="true"></span> Órdenes
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="sales/reports/top10-products">
+                <span class="fas fa-medal" aria-hidden="true"></span> Top 10 Productos
+            </NavLink>
+        </div>
+
+        <!-- Portal de Producción -->
+        <div class="nav-item px-3">
+            <h6 class="nav-header text-muted mt-3 mb-1">
+                <i class="fas fa-cogs"></i> Producción
+            </h6>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="production/products">
+                <span class="fas fa-boxes" aria-hidden="true"></span> Productos
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="production/reports/low-inventory">
+                <span class="fas fa-exclamation-triangle text-warning" aria-hidden="true"></span> Bajo Inventario
+            </NavLink>
+        </div>
+
+        <!-- Configuración -->
+        <div class="nav-item px-3">
+            <h6 class="nav-header text-muted mt-3 mb-1">
+                <i class="fas fa-cog"></i> Sistema
+            </h6>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="counter">
+                <span class="fas fa-calculator" aria-hidden="true"></span> Counter
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="weather">
+                <span class="fas fa-cloud-sun" aria-hidden="true"></span> Weather
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+<style>
+    .nav-header {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.5rem 0 0.25rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .nav-link {
+        border-radius: 0.375rem;
+        margin: 0.125rem 0;
+        transition: all 0.2s ease;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        transform: translateX(5px);
+    }
+    
+    .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.2);
+        font-weight: 600;
+    }
+
+    .text-warning {
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+</style>
+

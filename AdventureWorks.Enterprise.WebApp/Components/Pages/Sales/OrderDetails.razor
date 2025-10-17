@@ -1,0 +1,415 @@
+@page "/sales/orders/{OrderId:int}"
+@using AdventureWorks.Enterprise.WebApp.Models.Sales
+@using AdventureWorks.Enterprise.WebApp.Services
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Detalle Orden - Portal Ventas</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/sales/orders">Órdenes</a>
+                    </li>
+                    <li class="breadcrumb-item active">Orden #@OrderId</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" @onclick="Regresar">
+                <i class="fas fa-arrow-left"></i> Regresar
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center p-4">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando detalles de la orden...</p>
+        </div>
+    }
+    else if (orden != null)
+    {
+        <div class="row">
+            <!-- Información principal de la orden -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="card-title mb-0">
+                            <i class="fas fa-shopping-cart"></i>
+                            Orden #@orden.SalesOrderID - @orden.SalesOrderNumber
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Cliente:</label>
+                                    <p class="form-control-plaintext">Cliente #@orden.CustomerID</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Fecha de Orden:</label>
+                                    <p class="form-control-plaintext">@orden.OrderDate.ToString("dd/MM/yyyy HH:mm")</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Fecha Requerida:</label>
+                                    <p class="form-control-plaintext">@orden.DueDate.ToString("dd/MM/yyyy")</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Fecha de Envío:</label>
+                                    <p class="form-control-plaintext">
+                                        @if (orden.ShipDate.HasValue)
+                                        {
+                                            <span class="text-success">@orden.ShipDate.Value.ToString("dd/MM/yyyy")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Pendiente de envío</span>
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Estado:</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge @GetStatusBadgeClass(orden.Status) fs-6">
+                                            @GetStatusText(orden.Status)
+                                        </span>
+                                    </p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Vendedor:</label>
+                                    <p class="form-control-plaintext">
+                                        @if (orden.SalesPersonID.HasValue)
+                                        {
+                                            <span>Vendedor #@orden.SalesPersonID</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Sin asignar</span>
+                                        }
+                                    </p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Número de Revisión:</label>
+                                    <p class="form-control-plaintext">@orden.RevisionNumber</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Orden Online:</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge @(orden.OnlineOrderFlag ? "bg-primary" : "bg-secondary")">
+                                            @(orden.OnlineOrderFlag ? "Sí" : "No")
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalles de la orden -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list"></i>
+                            Detalles de la Orden
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @if (isLoadingDetalles)
+                        {
+                            <div class="text-center p-3">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Cargando detalles...</span>
+                                </div>
+                            </div>
+                        }
+                        else if (detalles?.Any() == true)
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Detalle</th>
+                                            <th>Producto</th>
+                                            <th>Cantidad</th>
+                                            <th>Precio Unitario</th>
+                                            <th>Descuento</th>
+                                            <th>Total Línea</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var detalle in detalles)
+                                        {
+                                            <tr>
+                                                <td>@detalle.SalesOrderDetailID</td>
+                                                <td>
+                                                    <strong>Producto #@detalle.ProductID</strong>
+                                                    @if (!string.IsNullOrEmpty(detalle.CarrierTrackingNumber))
+                                                    {
+                                                        <br><small class="text-muted">Tracking: @detalle.CarrierTrackingNumber</small>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">@detalle.OrderQty</span>
+                                                </td>
+                                                <td>@detalle.UnitPrice.ToString("C")</td>
+                                                <td>
+                                                    @if (detalle.UnitPriceDiscount > 0)
+                                                    {
+                                                        <span class="text-success">@detalle.UnitPriceDiscount.ToString("C")</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <strong class="text-success">@(detalle.LineTotal?.ToString("C") ?? "N/A")</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                No se encontraron detalles para esta orden.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel lateral con totales y acciones -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calculator"></i>
+                            Resumen Financiero
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Subtotal:</span>
+                            <span class="fw-bold">@orden.SubTotal.ToString("C")</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Impuestos:</span>
+                            <span class="fw-bold">@orden.TaxAmt.ToString("C")</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Flete:</span>
+                            <span class="fw-bold">@orden.Freight.ToString("C")</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-success">Total:</span>
+                            <span class="fw-bold text-success h5">@(orden.TotalDue?.ToString("C") ?? "N/A")</span>
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(orden.Comment))
+                        {
+                            <hr>
+                            <div>
+                                <strong>Comentarios:</strong>
+                                <p class="small text-muted">@orden.Comment</p>
+                            </div>
+                        }
+                        
+                        <hr>
+                        <div class="text-center">
+                            <small class="text-muted">
+                                Última modificación:<br>
+                                @orden.ModifiedDate.ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-cogs"></i>
+                            Acciones
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" @onclick="EditarOrden">
+                                <i class="fas fa-edit"></i> Editar Orden
+                            </button>
+                            <button class="btn btn-outline-info" @onclick="ImprimirOrden">
+                                <i class="fas fa-print"></i> Imprimir
+                            </button>
+                            @if (orden.Status < 5)
+                            {
+                                <button class="btn btn-outline-success" @onclick="ProcesarOrden">
+                                    <i class="fas fa-check"></i> Procesar
+                                </button>
+                            }
+                            @if (orden.Status == 1)
+                            {
+                                <hr>
+                                <button class="btn btn-outline-danger" @onclick="CancelarOrden">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            No se encontró la orden solicitada.
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int OrderId { get; set; }
+    
+    private SalesOrderHeaderDto? orden;
+    private List<SalesOrderDetailDto>? detalles;
+    private bool isLoading = true;
+    private bool isLoadingDetalles = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarOrden();
+        await CargarDetalles();
+    }
+
+    private async Task CargarOrden()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+            
+            orden = await ApiService.GetOrdenAsync(OrderId);
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar orden: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CargarDetalles()
+    {
+        try
+        {
+            isLoadingDetalles = true;
+            StateHasChanged();
+            
+            detalles = await ApiService.GetDetallesOrdenAsync(OrderId);
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar detalles: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingDetalles = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Regresar()
+    {
+        Navigation.NavigateTo("/sales/orders");
+    }
+
+    private void EditarOrden()
+    {
+        JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de edición pendiente de implementar");
+    }
+
+    private void ImprimirOrden()
+    {
+        JSRuntime.InvokeVoidAsync("window.print");
+    }
+
+    private async Task ProcesarOrden()
+    {
+        var confirmado = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"¿Está seguro que desea procesar la orden {orden?.SalesOrderNumber}?");
+            
+        if (confirmado)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de procesamiento pendiente de implementar");
+        }
+    }
+
+    private async Task CancelarOrden()
+    {
+        var confirmado = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"¿Está seguro que desea cancelar la orden {orden?.SalesOrderNumber}?");
+            
+        if (confirmado)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de cancelación pendiente de implementar");
+        }
+    }
+
+    private string GetStatusBadgeClass(byte status) => status switch
+    {
+        1 => "bg-warning",
+        2 => "bg-info",
+        3 => "bg-primary",
+        4 => "bg-secondary",
+        5 => "bg-success",
+        6 => "bg-dark",
+        _ => "bg-light text-dark"
+    };
+
+    private string GetStatusText(byte status) => status switch
+    {
+        1 => "En Proceso",
+        2 => "Aprobado",
+        3 => "Pedido Pendiente",
+        4 => "Rechazado",
+        5 => "Enviado",
+        6 => "Cancelado",
+        _ => "Desconocido"
+    };
+}
+
+<style>
+    .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+    
+    .form-control-plaintext {
+        padding-left: 0;
+        margin-bottom: 0;
+    }
+
+    @@media print {
+        .btn, .breadcrumb, .card-header {
+            display: none !important;
+        }
+    }
+</style>

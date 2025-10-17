@@ -1,0 +1,13 @@
+﻿{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ApiSettings": {
+    "BaseUrl": "https://localhost:7001",
+    "ApiKey": "DEV-AW-2024-ENTERPRISE-API-KEY-DEVELOPMENT-ONLY-123456789"
+  }
+}

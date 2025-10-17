@@ -1,0 +1,198 @@
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using AdventureWorks.Enterprise.Api.Controllers;
+using AdventureWorks.Enterprise.Api.Tests.Infrastructure;
+
+namespace AdventureWorks.Enterprise.Api.Tests.Controllers
+{
+    /// <summary>
+    /// Tests para el controlador de Test
+    /// </summary>
+    public class TestControllerTests : BaseControllerTest
+    {
+        private readonly TestController _controller;
+        private readonly Mock<ILogger<TestController>> _mockLogger;
+
+        public TestControllerTests()
+        {
+            _mockLogger = CreateMockLogger<TestController>();
+            _controller = new TestController(_mockLogger.Object);
+            
+            // Configurar HttpContext mock
+            var httpContext = new DefaultHttpContext();
+            httpContext.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("127.0.0.1");
+            _controller.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
+        }
+
+        #region Ping Tests
+
+        [Fact]
+        public void Ping_DeberiaRetornarOk_ConMensajeExitoso()
+        {
+            // Act
+            var result = _controller.Ping();
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+            var okResult = result as OkObjectResult;
+            okResult.Should().NotBeNull();
+            
+            // Verificar que la respuesta contiene las propiedades esperadas
+            var response = okResult?.Value;
+            response.Should().NotBeNull();
+            
+            // Usar reflexión para verificar las propiedades del objeto anónimo
+            var responseType = response?.GetType();
+            responseType?.GetProperty("message")?.GetValue(response).Should().NotBeNull();
+            responseType?.GetProperty("timestamp")?.GetValue(response).Should().NotBeNull();
+            responseType?.GetProperty("server")?.GetValue(response).Should().NotBeNull();
+            responseType?.GetProperty("version")?.GetValue(response).Should().NotBeNull();
+        }
+
+        [Fact]
+        public void Ping_DeberiaLoguearInformacion()
+        {
+            // Act
+            _controller.Ping();
+
+            // Assert - Verificar que se logueó la información
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Ping recibido desde IP")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        #endregion
+
+        #region Status Tests
+
+        [Fact]
+        public void Status_DeberiaRetornarOk_ConInformacionDelSistema()
+        {
+            // Act
+            var result = _controller.Status();
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+            var okResult = result as OkObjectResult;
+            okResult.Should().NotBeNull();
+            
+            // Verificar que la respuesta contiene las propiedades esperadas
+            var response = okResult?.Value;
+            response.Should().NotBeNull();
+            
+            // Usar reflexión para verificar las propiedades del objeto anónimo
+            var responseType = response?.GetType();
+            responseType?.GetProperty("status")?.GetValue(response).Should().Be("Operational");
+            responseType?.GetProperty("timestamp")?.GetValue(response).Should().NotBeNull();
+            responseType?.GetProperty("server")?.GetValue(response).Should().NotBeNull();
+            responseType?.GetProperty("environment")?.GetValue(response).Should().NotBeNull();
+            responseType?.GetProperty("uptime")?.GetValue(response).Should().NotBeNull();
+            responseType?.GetProperty("version")?.GetValue(response).Should().NotBeNull();
+        }
+
+        [Fact]
+        public void Status_DeberiaLoguearInformacion()
+        {
+            // Act
+            _controller.Status();
+
+            // Assert - Verificar que se logueó la información
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Status check recibido desde IP")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void Status_DeberiaRetornarVersionCorrecta()
+        {
+            // Act
+            var result = _controller.Status();
+
+            // Assert
+            var okResult = result as OkObjectResult;
+            var response = okResult?.Value;
+            var responseType = response?.GetType();
+            var version = responseType?.GetProperty("version")?.GetValue(response) as string;
+            
+            version.Should().NotBeNullOrEmpty();
+            version.Should().NotBe("Unknown");
+        }
+
+        [Fact]
+        public void Status_DeberiaRetornarEnvironmentCorrect()
+        {
+            // Act
+            var result = _controller.Status();
+
+            // Assert
+            var okResult = result as OkObjectResult;
+            var response = okResult?.Value;
+            var responseType = response?.GetType();
+            var environment = responseType?.GetProperty("environment")?.GetValue(response) as string;
+            
+            environment.Should().NotBeNullOrEmpty();
+        }
+
+        #endregion
+
+        #region Integration Tests
+
+        [Fact]
+        public void Ping_Y_Status_DeberianTenerTimestampsSimilares()
+        {
+            // Arrange
+            var tiempoInicio = DateTime.UtcNow;
+
+            // Act
+            var pingResult = _controller.Ping();
+            var statusResult = _controller.Status();
+            var tiempoFin = DateTime.UtcNow;
+
+            // Assert
+            var pingResponse = (pingResult as OkObjectResult)?.Value;
+            var statusResponse = (statusResult as OkObjectResult)?.Value;
+            
+            var pingTimestamp = (DateTime)pingResponse?.GetType().GetProperty("timestamp")?.GetValue(pingResponse)!;
+            var statusTimestamp = (DateTime)statusResponse?.GetType().GetProperty("timestamp")?.GetValue(statusResponse)!;
+
+            pingTimestamp.Should().BeOnOrAfter(tiempoInicio);
+            pingTimestamp.Should().BeOnOrBefore(tiempoFin);
+            statusTimestamp.Should().BeOnOrAfter(tiempoInicio);
+            statusTimestamp.Should().BeOnOrBefore(tiempoFin);
+        }
+
+        [Fact]
+        public void Controllers_DeberianTenerMismoServidor()
+        {
+            // Act
+            var pingResult = _controller.Ping();
+            var statusResult = _controller.Status();
+
+            // Assert
+            var pingResponse = (pingResult as OkObjectResult)?.Value;
+            var statusResponse = (statusResult as OkObjectResult)?.Value;
+            
+            var pingServer = pingResponse?.GetType().GetProperty("server")?.GetValue(pingResponse) as string;
+            var statusServer = statusResponse?.GetType().GetProperty("server")?.GetValue(statusResponse) as string;
+
+            pingServer.Should().Be(statusServer);
+            pingServer.Should().NotBeNullOrEmpty();
+        }
+
+        #endregion
+    }
+}

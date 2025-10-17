@@ -1,0 +1,142 @@
+﻿using System.Net;
+
+namespace AdventureWorks.Enterprise.Api.Middleware
+{
+    /// <summary>
+    /// Middleware para validar API Key en las solicitudes
+    /// </summary>
+    public class ApiKeyMiddleware
+    {
+        private readonly RequestDelegate _next;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<ApiKeyMiddleware> _logger;
+        private const string API_KEY_HEADER_NAME = "X-API-Key";
+
+        public ApiKeyMiddleware(RequestDelegate next, IConfiguration configuration, ILogger<ApiKeyMiddleware> logger)
+        {
+            _next = next;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Procesa la solicitud HTTP y valida la API Key
+        /// </summary>
+        /// <param name="context">Contexto HTTP</param>
+        /// <returns>Task</returns>
+        public async Task InvokeAsync(HttpContext context)
+        {
+            try
+            {
+                // Omitir validación para Swagger en desarrollo
+                if (context.Request.Path.StartsWithSegments("/swagger") || 
+                    context.Request.Path.StartsWithSegments("/api-docs") ||
+                    context.Request.Path.Value?.Contains("swagger", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    await _next(context);
+                    return;
+                }
+
+                // Solo validar rutas de API
+                if (!context.Request.Path.StartsWithSegments("/api"))
+                {
+                    await _next(context);
+                    return;
+                }
+
+                // Obtener la API Key del header
+                if (!context.Request.Headers.TryGetValue(API_KEY_HEADER_NAME, out var extractedApiKey))
+                {
+                    _logger.LogWarning("API Key no proporcionada en la solicitud desde IP: {RemoteIpAddress} para ruta: {Path}", 
+                        context.Connection.RemoteIpAddress, context.Request.Path);
+                    
+                    await HandleUnauthorizedAsync(context, "API Key requerida");
+                    return;
+                }
+
+                // Obtener la API Key válida de la configuración
+                var validApiKey = _configuration["ApiSettings:ApiKey"];
+                
+                if (string.IsNullOrWhiteSpace(validApiKey))
+                {
+                    _logger.LogError("API Key no configurada en appsettings.json");
+                    await HandleUnauthorizedAsync(context, "Configuración de API Key no válida");
+                    return;
+                }
+
+                // Validar la API Key - usar ToString() de manera segura
+                var extractedApiKeyString = extractedApiKey.ToString();
+                if (!string.Equals(extractedApiKeyString, validApiKey, StringComparison.Ordinal))
+                {
+                    var maskedKey = extractedApiKeyString.Length > 10 
+                        ? extractedApiKeyString.Substring(0, 10) + "..." 
+                        : extractedApiKeyString;
+                        
+                    _logger.LogWarning("API Key inválida proporcionada desde IP: {RemoteIpAddress} para ruta: {Path}. Key: {ApiKey}", 
+                        context.Connection.RemoteIpAddress, context.Request.Path, maskedKey);
+                    
+                    await HandleUnauthorizedAsync(context, "API Key inválida");
+                    return;
+                }
+
+                // API Key válida, continuar con la siguiente parte del pipeline
+                _logger.LogInformation("Acceso autorizado para IP: {RemoteIpAddress} en ruta: {Path}", 
+                    context.Connection.RemoteIpAddress, context.Request.Path);
+                
+                await _next(context);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error durante la validación de API Key: {ErrorMessage}. StackTrace: {StackTrace}", 
+                    ex.Message, ex.StackTrace);
+                    
+                await HandleUnauthorizedAsync(context, $"Error interno de autenticación: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Maneja las respuestas no autorizadas
+        /// </summary>
+        /// <param name="context">Contexto HTTP</param>
+        /// <param name="message">Mensaje de error</param>
+        /// <returns>Task</returns>
+        private static async Task HandleUnauthorizedAsync(HttpContext context, string message)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            context.Response.ContentType = "application/json";
+
+            var response = new
+            {
+                error = "Unauthorized",
+                message = message,
+                statusCode = 401,
+                timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                path = context.Request.Path.Value,
+                traceId = context.TraceIdentifier
+            };
+
+            var jsonResponse = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            });
+
+            await context.Response.WriteAsync(jsonResponse);
+        }
+    }
+
+    /// <summary>
+    /// Extensión para registrar el middleware de API Key
+    /// </summary>
+    public static class ApiKeyMiddlewareExtensions
+    {
+        /// <summary>
+        /// Agrega el middleware de validación de API Key al pipeline
+        /// </summary>
+        /// <param name="builder">Application builder</param>
+        /// <returns>Application builder</returns>
+        public static IApplicationBuilder UseApiKeyAuthentication(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<ApiKeyMiddleware>();
+        }
+    }
+}

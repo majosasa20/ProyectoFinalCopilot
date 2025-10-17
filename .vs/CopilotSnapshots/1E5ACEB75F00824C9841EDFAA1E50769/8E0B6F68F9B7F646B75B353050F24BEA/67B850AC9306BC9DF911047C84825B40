@@ -1,0 +1,236 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using AdventureWorks.Enterprise.Api.Models.Sales;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controller for managing sales orders
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OrdersController : ControllerBase
+    {
+        private readonly ILogger<OrdersController> _logger;
+        private static List<SalesOrderHeaderDto> _orders = new();
+        private static List<SalesOrderDetailDto> _orderDetails = new();
+
+        public OrdersController(ILogger<OrdersController> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Get all sales orders
+        /// </summary>
+        /// <returns>List of sales orders</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<SalesOrderHeaderDto>>> GetOrders()
+        {
+            try
+            {
+                _logger.LogInformation("Getting all orders at {Timestamp}", DateTime.UtcNow);
+                return Ok(_orders);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting orders");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Get sales order by ID
+        /// </summary>
+        /// <param name="id">Sales Order ID</param>
+        /// <returns>Sales order details</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<SalesOrderHeaderDto>> GetOrder(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Getting order {OrderId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                var order = _orders.FirstOrDefault(o => o.SalesOrderID == id);
+                if (order == null)
+                {
+                    _logger.LogWarning("Order {OrderId} not found", id);
+                    return NotFound($"Order with ID {id} not found");
+                }
+
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting order {OrderId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Get order details for a specific order
+        /// </summary>
+        /// <param name="id">Sales Order ID</param>
+        /// <returns>List of order details</returns>
+        [HttpGet("{id}/details")]
+        public async Task<ActionResult<IEnumerable<SalesOrderDetailDto>>> GetOrderDetails(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Getting order details for order {OrderId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                var details = _orderDetails.Where(d => d.SalesOrderID == id).ToList();
+                return Ok(details);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting order details for order {OrderId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Create a new sales order
+        /// </summary>
+        /// <param name="order">Sales order data</param>
+        /// <returns>Created sales order</returns>
+        [HttpPost]
+        public async Task<ActionResult<SalesOrderHeaderDto>> CreateOrder([FromBody] SalesOrderHeaderDto order)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for creating order");
+                    return BadRequest(ModelState);
+                }
+
+                order.SalesOrderID = _orders.Count > 0 ? _orders.Max(o => o.SalesOrderID) + 1 : 1;
+                order.SalesOrderNumber = $"SO{order.SalesOrderID:000000}";
+                order.RowGuid = Guid.NewGuid();
+                order.ModifiedDate = DateTime.UtcNow;
+                order.TotalDue = order.SubTotal + order.TaxAmt + order.Freight;
+
+                _orders.Add(order);
+                
+                _logger.LogInformation("Created order {OrderId} at {Timestamp}", order.SalesOrderID, DateTime.UtcNow);
+                
+                return CreatedAtAction(nameof(GetOrder), new { id = order.SalesOrderID }, order);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while creating order");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Update an existing sales order
+        /// </summary>
+        /// <param name="id">Sales Order ID</param>
+        /// <param name="order">Updated sales order data</param>
+        /// <returns>No content if successful</returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateOrder(int id, [FromBody] SalesOrderHeaderDto order)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for updating order {OrderId}", id);
+                    return BadRequest(ModelState);
+                }
+
+                var existingOrder = _orders.FirstOrDefault(o => o.SalesOrderID == id);
+                if (existingOrder == null)
+                {
+                    _logger.LogWarning("Order {OrderId} not found for update", id);
+                    return NotFound($"Order with ID {id} not found");
+                }
+
+                // Update properties
+                existingOrder.RevisionNumber = order.RevisionNumber;
+                existingOrder.OrderDate = order.OrderDate;
+                existingOrder.DueDate = order.DueDate;
+                existingOrder.ShipDate = order.ShipDate;
+                existingOrder.Status = order.Status;
+                existingOrder.OnlineOrderFlag = order.OnlineOrderFlag;
+                existingOrder.CustomerID = order.CustomerID;
+                existingOrder.SalesPersonID = order.SalesPersonID;
+                existingOrder.TerritoryID = order.TerritoryID;
+                existingOrder.SubTotal = order.SubTotal;
+                existingOrder.TaxAmt = order.TaxAmt;
+                existingOrder.Freight = order.Freight;
+                existingOrder.TotalDue = order.SubTotal + order.TaxAmt + order.Freight;
+                existingOrder.ModifiedDate = DateTime.UtcNow;
+
+                _logger.LogInformation("Updated order {OrderId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating order {OrderId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Delete a sales order
+        /// </summary>
+        /// <param name="id">Sales Order ID</param>
+        /// <returns>No content if successful</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteOrder(int id)
+        {
+            try
+            {
+                var order = _orders.FirstOrDefault(o => o.SalesOrderID == id);
+                if (order == null)
+                {
+                    _logger.LogWarning("Order {OrderId} not found for deletion", id);
+                    return NotFound($"Order with ID {id} not found");
+                }
+
+                // Also remove order details
+                var details = _orderDetails.Where(d => d.SalesOrderID == id).ToList();
+                foreach (var detail in details)
+                {
+                    _orderDetails.Remove(detail);
+                }
+
+                _orders.Remove(order);
+                
+                _logger.LogInformation("Deleted order {OrderId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting order {OrderId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Get orders by customer ID
+        /// </summary>
+        /// <param name="customerId">Customer ID</param>
+        /// <returns>List of orders for the customer</returns>
+        [HttpGet("customer/{customerId}")]
+        public async Task<ActionResult<IEnumerable<SalesOrderHeaderDto>>> GetOrdersByCustomer(int customerId)
+        {
+            try
+            {
+                _logger.LogInformation("Getting orders for customer {CustomerId} at {Timestamp}", customerId, DateTime.UtcNow);
+                
+                var customerOrders = _orders.Where(o => o.CustomerID == customerId).ToList();
+                return Ok(customerOrders);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting orders for customer {CustomerId}", customerId);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+    }
+}

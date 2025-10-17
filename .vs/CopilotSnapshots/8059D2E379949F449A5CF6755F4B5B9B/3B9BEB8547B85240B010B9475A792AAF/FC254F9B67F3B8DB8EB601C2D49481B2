@@ -1,0 +1,293 @@
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace AdventureWorks.Enterprise.Api.Data
+{
+    /// <summary>
+    /// Contexto de base de datos para AdventureWorks Enterprise
+    /// </summary>
+    public class AdventureWorksDbContext : DbContext
+    {
+        public AdventureWorksDbContext(DbContextOptions<AdventureWorksDbContext> options) : base(options)
+        {
+        }
+
+        #region Human Resources DbSets
+        public DbSet<Employee> Employees { get; set; }
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<Shift> Shifts { get; set; }
+        public DbSet<EmployeeDepartmentHistory> EmployeeDepartmentHistories { get; set; }
+        public DbSet<EmployeePayHistory> EmployeePayHistories { get; set; }
+        public DbSet<JobCandidate> JobCandidates { get; set; }
+        #endregion
+
+        #region Production DbSets
+        public DbSet<Product> Products { get; set; }
+        public DbSet<ProductCategory> ProductCategories { get; set; }
+        public DbSet<ProductSubcategory> ProductSubcategories { get; set; }
+        public DbSet<ProductModel> ProductModels { get; set; }
+        public DbSet<ProductInventory> ProductInventories { get; set; }
+        public DbSet<WorkOrder> WorkOrders { get; set; }
+        #endregion
+
+        #region Sales DbSets
+        public DbSet<Customer> Customers { get; set; }
+        public DbSet<SalesOrderHeader> SalesOrderHeaders { get; set; }
+        public DbSet<SalesOrderDetail> SalesOrderDetails { get; set; }
+        public DbSet<SalesPerson> SalesPersons { get; set; }
+        public DbSet<SalesTerritory> SalesTerritories { get; set; }
+        public DbSet<Store> Stores { get; set; }
+        public DbSet<SpecialOffer> SpecialOffers { get; set; }
+        public DbSet<Currency> Currencies { get; set; }
+        public DbSet<CountryRegionCurrency> CountryRegionCurrencies { get; set; }
+        #endregion
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            #region Human Resources Configurations
+            
+            // Employee
+            modelBuilder.Entity<Employee>(entity =>
+            {
+                entity.HasKey(e => e.BusinessEntityID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Department
+            modelBuilder.Entity<Department>(entity =>
+            {
+                entity.HasKey(e => e.DepartmentID);
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Shift
+            modelBuilder.Entity<Shift>(entity =>
+            {
+                entity.HasKey(e => e.ShiftID);
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            // EmployeeDepartmentHistory
+            modelBuilder.Entity<EmployeeDepartmentHistory>(entity =>
+            {
+                entity.HasKey(e => new { e.BusinessEntityID, e.StartDate, e.DepartmentID, e.ShiftID });
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+                
+                entity.HasOne(d => d.Employee)
+                    .WithMany(p => p.EmployeeDepartmentHistories)
+                    .HasForeignKey(d => d.BusinessEntityID);
+                
+                entity.HasOne(d => d.Department)
+                    .WithMany(p => p.EmployeeDepartmentHistories)
+                    .HasForeignKey(d => d.DepartmentID);
+                
+                entity.HasOne(d => d.Shift)
+                    .WithMany()
+                    .HasForeignKey(d => d.ShiftID);
+            });
+
+            // EmployeePayHistory
+            modelBuilder.Entity<EmployeePayHistory>(entity =>
+            {
+                entity.HasKey(e => new { e.BusinessEntityID, e.RateChangeDate });
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            // JobCandidate
+            modelBuilder.Entity<JobCandidate>(entity =>
+            {
+                entity.HasKey(e => e.JobCandidateID);
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            #endregion
+
+            #region Production Configurations
+
+            // Product
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.HasKey(e => e.ProductID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+                
+                entity.HasOne(d => d.ProductSubcategory)
+                    .WithMany(p => p.Products)
+                    .HasForeignKey(d => d.ProductSubcategoryID);
+                
+                entity.HasOne(d => d.ProductModel)
+                    .WithMany(p => p.Products)
+                    .HasForeignKey(d => d.ProductModelID);
+            });
+
+            // ProductCategory
+            modelBuilder.Entity<ProductCategory>(entity =>
+            {
+                entity.HasKey(e => e.ProductCategoryID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            // ProductSubcategory
+            modelBuilder.Entity<ProductSubcategory>(entity =>
+            {
+                entity.HasKey(e => e.ProductSubcategoryID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+                
+                entity.HasOne(d => d.ProductCategory)
+                    .WithMany(p => p.ProductSubcategories)
+                    .HasForeignKey(d => d.ProductCategoryID);
+            });
+
+            // ProductModel
+            modelBuilder.Entity<ProductModel>(entity =>
+            {
+                entity.HasKey(e => e.ProductModelID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            // ProductInventory
+            modelBuilder.Entity<ProductInventory>(entity =>
+            {
+                entity.HasKey(e => new { e.ProductID, e.LocationID });
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+                
+                entity.HasOne(d => d.Product)
+                    .WithMany(p => p.ProductInventories)
+                    .HasForeignKey(d => d.ProductID);
+            });
+
+            // WorkOrder
+            modelBuilder.Entity<WorkOrder>(entity =>
+            {
+                entity.HasKey(e => e.WorkOrderID);
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+                
+                entity.HasOne(d => d.Product)
+                    .WithMany(p => p.WorkOrders)
+                    .HasForeignKey(d => d.ProductID);
+            });
+
+            #endregion
+
+            #region Sales Configurations
+
+            // Customer
+            modelBuilder.Entity<Customer>(entity =>
+            {
+                entity.HasKey(e => e.CustomerID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+                
+                entity.HasOne(d => d.Store)
+                    .WithMany(p => p.Customers)
+                    .HasForeignKey(d => d.StoreID);
+                
+                entity.HasOne(d => d.SalesTerritory)
+                    .WithMany(p => p.Customers)
+                    .HasForeignKey(d => d.TerritoryID);
+            });
+
+            // SalesOrderHeader
+            modelBuilder.Entity<SalesOrderHeader>(entity =>
+            {
+                entity.HasKey(e => e.SalesOrderID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+                
+                entity.HasOne(d => d.Customer)
+                    .WithMany(p => p.SalesOrderHeaders)
+                    .HasForeignKey(d => d.CustomerID);
+                
+                entity.HasOne(d => d.SalesPerson)
+                    .WithMany(p => p.SalesOrderHeaders)
+                    .HasForeignKey(d => d.SalesPersonID);
+                
+                entity.HasOne(d => d.SalesTerritory)
+                    .WithMany(p => p.SalesOrderHeaders)
+                    .HasForeignKey(d => d.TerritoryID);
+            });
+
+            // SalesOrderDetail
+            modelBuilder.Entity<SalesOrderDetail>(entity =>
+            {
+                entity.HasKey(e => new { e.SalesOrderID, e.SalesOrderDetailID });
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+                
+                entity.HasOne(d => d.SalesOrderHeader)
+                    .WithMany(p => p.SalesOrderDetails)
+                    .HasForeignKey(d => d.SalesOrderID);
+                
+                entity.HasOne(d => d.Product)
+                    .WithMany(p => p.SalesOrderDetails)
+                    .HasForeignKey(d => d.ProductID);
+                
+                entity.HasOne(d => d.SpecialOffer)
+                    .WithMany(p => p.SalesOrderDetails)
+                    .HasForeignKey(d => d.SpecialOfferID);
+            });
+
+            // SalesPerson
+            modelBuilder.Entity<SalesPerson>(entity =>
+            {
+                entity.HasKey(e => e.BusinessEntityID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+                
+                entity.HasOne(d => d.SalesTerritory)
+                    .WithMany(p => p.SalesPersons)
+                    .HasForeignKey(d => d.TerritoryID);
+            });
+
+            // SalesTerritory
+            modelBuilder.Entity<SalesTerritory>(entity =>
+            {
+                entity.HasKey(e => e.TerritoryID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Store
+            modelBuilder.Entity<Store>(entity =>
+            {
+                entity.HasKey(e => e.BusinessEntityID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            // SpecialOffer
+            modelBuilder.Entity<SpecialOffer>(entity =>
+            {
+                entity.HasKey(e => e.SpecialOfferID);
+                entity.Property(e => e.RowGuid).HasDefaultValueSql("NEWID()");
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Currency
+            modelBuilder.Entity<Currency>(entity =>
+            {
+                entity.HasKey(e => e.CurrencyCode);
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            // CountryRegionCurrency
+            modelBuilder.Entity<CountryRegionCurrency>(entity =>
+            {
+                entity.HasKey(e => new { e.CountryRegionCode, e.CurrencyCode });
+                entity.Property(e => e.ModifiedDate).HasDefaultValueSql("GETDATE()");
+                
+                entity.HasOne(d => d.Currency)
+                    .WithMany(p => p.CountryRegionCurrencies)
+                    .HasForeignKey(d => d.CurrencyCode);
+            });
+
+            #endregion
+        }
+    }
+}

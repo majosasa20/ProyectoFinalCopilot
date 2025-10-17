@@ -1,0 +1,14 @@
+﻿{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "AdventureWorks.Enterprise.WebApp.Services.ApiService": "Information",
+      "System.Net.Http.HttpClient": "Information"
+    }
+  },
+  "ApiSettings": {
+    "BaseUrl": "https://localhost:7001",
+    "ApiKey": "CursoCopilot2025"
+  }
+}

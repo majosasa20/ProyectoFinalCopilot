@@ -1,0 +1,104 @@
+﻿# Estándares de Programación Modernos - AdventureWorks Enterprise
+
+## 1. Convenciones de Nombres y Codificación
+
+- Usar **PascalCase** para clases, métodos, propiedades, interfaces, enums y namespaces en C#.
+- Usar **camelCase** para variables locales, parámetros de método y campos privados en C#.
+- Usar **SCREAMING_SNAKE_CASE** para constantes públicas.
+- Prefijar interfaces con `I` (ej: `IUserService`). Prefijar campos privados con `_` (ej: `_userRepository`).
+- Usar **camelCase** para variables, funciones y métodos en JavaScript/TypeScript.
+- Usar **PascalCase** para clases y componentes en JavaScript/TypeScript.
+- Usar **kebab-case** para archivos CSS y HTML.
+- Usar nombres descriptivos y en inglés para tablas, columnas y vistas en SQL Server. Prefijar procedimientos almacenados con `usp_`, funciones escalares con `fn_`, funciones de tabla con `tvf_` y vistas con `vw_`.
+
+## 2. Arquitectura y Estructura de Proyecto
+
+- Usar arquitectura Clean/Onion para separar dominio, aplicación, infraestructura y presentación.
+- Organizar carpetas por funcionalidad (ej: `Pages/Products`, `Pages/Orders`).
+- Mantener un archivo por clase, página o componente.
+- Usar carpetas `Models`, `DTOs`, `Services`, `Pages`, `ViewModels` y `Tests` para separar responsabilidades.
+
+## 3. Principios SOLID y Patrones de Diseño
+
+- Aplicar principios SOLID en todo el código.
+- Usar **Inyección de Dependencias** con el contenedor de servicios de .NET (`builder.Services.AddScoped<>`).
+- Implementar el **patrón Repository** y **Unit of Work** para acceso a datos.
+- Usar **DTOs** para transferir datos entre capas y evitar exponer entidades directamente.
+- Usar el **Result Pattern** para el manejo de errores y respuestas de servicios.
+
+## 4. Documentación y Comentarios
+
+- Usar **comentarios XML** en métodos y clases públicas en C#.
+- Documentar la lógica compleja con comentarios en línea.
+- Usar etiquetas `TODO`, `HACK`, `NOTE` para marcar acciones pendientes, soluciones temporales y notas importantes.
+
+## 5. Manejo de Errores
+
+- Usar **try-catch** en operaciones críticas y acceso a datos.
+- Implementar **middleware global de excepciones** en ASP.NET Core.
+- Usar **ILogger** para registrar errores y eventos relevantes.
+- No mostrar detalles técnicos al usuario final; mostrar mensajes amigables.
+- Implementar páginas de error personalizadas.
+
+## 6. Seguridad
+
+- Validar y sanear todos los datos de entrada usando **DataAnnotations** y validaciones personalizadas.
+- Usar **AntiForgeryToken** en formularios Razor Pages para protección CSRF.
+- Configurar **Content Security Policy (CSP)** en cabeceras HTTP.
+- Gestionar secretos y credenciales con **Azure Key Vault** o **Secret Manager**.
+- Usar **HTTPS** en todos los entornos.
+- Limitar permisos y roles usando **autenticación y autorización** de ASP.NET Core.
+- Auditar y registrar accesos y acciones sensibles usando **ILogger**.
+
+## 7. Testing
+
+- Escribir **pruebas unitarias** usando **xUnit** o **NUnit**.
+- Usar **Moq** para mocks y **FluentAssertions** para aserciones en pruebas.
+- Escribir **pruebas de integración** para endpoints y servicios críticos.
+- Mantener una cobertura de código mínima del 80% en proyectos críticos.
+
+## 8. Performance y Optimización
+
+- Usar **async/await** correctamente; evitar `async void` y `Result`/`Wait` en código síncrono.
+- Optimizar consultas de Entity Framework usando **Include**, **ThenInclude** y proyecciones.
+- Medir y optimizar el rendimiento con **BenchmarkDotNet** y **Application Insights**.
+
+## 9. Razor Pages
+
+- Usar **PageModel** para separar lógica de presentación y negocio.
+- Usar **ViewModels** y **DTOs** para exponer datos a la vista.
+- Usar **[BindProperty]** para binding seguro de formularios.
+- Usar **TempData** para mensajes entre redirecciones.
+- Validar modelos con **ModelState** antes de procesar datos.
+
+## 10. CI/CD y DevOps
+
+- Configurar pipelines de integración y despliegue continuo usando **GitHub Actions** o **Azure DevOps**.
+- Ejecutar pruebas y análisis de código en cada Pull Request.
+- Usar **SonarQube** o **GitHub CodeQL** para análisis estático y seguridad.
+- Mantener dependencias actualizadas y seguras.
+
+## 11. Herramientas de Calidad de Código
+
+- Usar **EditorConfig** para estandarizar formato y estilo de código.
+- Integrar **SonarAnalyzer.CSharp** para análisis de calidad en C#.
+- Usar **Roslyn Analyzers** para reglas adicionales de estilo y seguridad.
+
+## 12. Referencias y Recursos
+
+- [.NET 8 Documentation](https://learn.microsoft.com/en-us/dotnet/)
+- [ASP.NET Core Razor Pages](https://learn.microsoft.com/en-us/aspnet/core/razor-pages/)
+- [Entity Framework Core](https://learn.microsoft.com/en-us/ef/core/)
+- [OWASP Top 10 2021](https://owasp.org/www-project-top-ten/)
+- [ASP.NET Core Security](https://learn.microsoft.com/en-us/aspnet/core/security/)
+- [Secure Coding Guidelines](https://learn.microsoft.com/en-us/dotnet/standard/security/secure-coding-guidelines)
+
+---
+
+## Revisión y Mantenimiento
+
+- Revisar y actualizar este documento trimestralmente.
+- Adaptar las directivas a nuevas versiones de .NET, amenazas de seguridad y feedback del equipo.
+
+**Última actualización:** Diciembre 2024
+**Próxima revisión:** Marzo 2025

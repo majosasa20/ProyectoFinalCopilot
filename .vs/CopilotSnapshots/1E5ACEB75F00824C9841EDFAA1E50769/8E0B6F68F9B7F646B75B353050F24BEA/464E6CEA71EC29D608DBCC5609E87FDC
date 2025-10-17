@@ -1,0 +1,169 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using AdventureWorks.Enterprise.Api.Models.HumanResources;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controlador para la gestión de departamentos
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class DepartamentosController : ControllerBase
+    {
+        private readonly ILogger<DepartamentosController> _logger;
+        private static List<DepartmentDto> _departamentos = new();
+
+        public DepartamentosController(ILogger<DepartamentosController> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Obtener todos los departamentos
+        /// </summary>
+        /// <returns>Lista de departamentos</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<DepartmentDto>>> ObtenerDepartamentos()
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo todos los departamentos en {Timestamp}", DateTime.UtcNow);
+                return Ok(_departamentos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener los departamentos");
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Obtener departamento por ID
+        /// </summary>
+        /// <param name="id">ID del departamento</param>
+        /// <returns>Detalles del departamento</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<DepartmentDto>> ObtenerDepartamento(short id)
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo departamento {DepartamentoId} en {Timestamp}", id, DateTime.UtcNow);
+                
+                var departamento = _departamentos.FirstOrDefault(d => d.DepartmentID == id);
+                if (departamento == null)
+                {
+                    _logger.LogWarning("Departamento {DepartamentoId} no encontrado", id);
+                    return NotFound($"Departamento con ID {id} no encontrado");
+                }
+
+                return Ok(departamento);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener el departamento {DepartamentoId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Crear un nuevo departamento
+        /// </summary>
+        /// <param name="departamento">Datos del departamento</param>
+        /// <returns>Departamento creado</returns>
+        [HttpPost]
+        public async Task<ActionResult<DepartmentDto>> CrearDepartamento([FromBody] DepartmentDto departamento)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Estado del modelo inválido para crear departamento");
+                    return BadRequest(ModelState);
+                }
+
+                departamento.DepartmentID = (short)(_departamentos.Count > 0 ? _departamentos.Max(d => d.DepartmentID) + 1 : 1);
+                departamento.ModifiedDate = DateTime.UtcNow;
+
+                _departamentos.Add(departamento);
+                
+                _logger.LogInformation("Departamento {DepartamentoId} creado en {Timestamp}", departamento.DepartmentID, DateTime.UtcNow);
+                
+                return CreatedAtAction(nameof(ObtenerDepartamento), new { id = departamento.DepartmentID }, departamento);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear el departamento");
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Actualizar un departamento existente
+        /// </summary>
+        /// <param name="id">ID del departamento</param>
+        /// <param name="departamento">Datos actualizados del departamento</param>
+        /// <returns>Sin contenido si es exitoso</returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> ActualizarDepartamento(short id, [FromBody] DepartmentDto departamento)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Estado del modelo inválido para actualizar departamento {DepartamentoId}", id);
+                    return BadRequest(ModelState);
+                }
+
+                var departamentoExistente = _departamentos.FirstOrDefault(d => d.DepartmentID == id);
+                if (departamentoExistente == null)
+                {
+                    _logger.LogWarning("Departamento {DepartamentoId} no encontrado para actualizar", id);
+                    return NotFound($"Departamento con ID {id} no encontrado");
+                }
+
+                departamentoExistente.Name = departamento.Name;
+                departamentoExistente.GroupName = departamento.GroupName;
+                departamentoExistente.ModifiedDate = DateTime.UtcNow;
+
+                _logger.LogInformation("Departamento {DepartamentoId} actualizado en {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar el departamento {DepartamentoId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Eliminar un departamento
+        /// </summary>
+        /// <param name="id">ID del departamento</param>
+        /// <returns>Sin contenido si es exitoso</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> EliminarDepartamento(short id)
+        {
+            try
+            {
+                var departamento = _departamentos.FirstOrDefault(d => d.DepartmentID == id);
+                if (departamento == null)
+                {
+                    _logger.LogWarning("Departamento {DepartamentoId} no encontrado para eliminar", id);
+                    return NotFound($"Departamento con ID {id} no encontrado");
+                }
+
+                _departamentos.Remove(departamento);
+                
+                _logger.LogInformation("Departamento {DepartamentoId} eliminado en {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar el departamento {DepartamentoId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+    }
+}

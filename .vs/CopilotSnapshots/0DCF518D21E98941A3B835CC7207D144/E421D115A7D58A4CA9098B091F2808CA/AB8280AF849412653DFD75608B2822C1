@@ -1,0 +1,204 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using AdventureWorks.Enterprise.Api.Data;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controlador para la gestión de clientes
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ClientesController : ControllerBase
+    {
+        private readonly AdventureWorksDbContext _context;
+        private readonly ILogger<ClientesController> _logger;
+
+        public ClientesController(AdventureWorksDbContext context, ILogger<ClientesController> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Obtener todos los clientes
+        /// </summary>
+        /// <returns>Lista de clientes</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Customer>>> ObtenerClientes()
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo todos los clientes en {Timestamp}", DateTime.UtcNow);
+                
+                var clientes = await _context.Customers
+                    .OrderBy(c => c.CustomerID)
+                    .Take(100)
+                    .ToListAsync();
+
+                _logger.LogInformation("Se obtuvieron {Count} clientes", clientes.Count);
+                return Ok(clientes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener los clientes: {Message}", ex.Message);
+                return StatusCode(500, $"Ocurrió un error al procesar su solicitud: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Obtener cliente por ID
+        /// </summary>
+        /// <param name="id">ID del cliente</param>
+        /// <returns>Detalles del cliente</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Customer>> ObtenerCliente(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo cliente {ClienteId} en {Timestamp}", id, DateTime.UtcNow);
+                
+                var cliente = await _context.Customers
+                    .Include(c => c.Store)
+                    .Include(c => c.SalesTerritory)
+                    .Include(c => c.SalesOrderHeaders)
+                    .FirstOrDefaultAsync(c => c.CustomerID == id);
+
+                if (cliente == null)
+                {
+                    _logger.LogWarning("Cliente {ClienteId} no encontrado", id);
+                    return NotFound($"Cliente con ID {id} no encontrado");
+                }
+
+                return Ok(cliente);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener el cliente {ClienteId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Crear un nuevo cliente
+        /// </summary>
+        /// <param name="cliente">Datos del cliente</param>
+        /// <returns>Cliente creado</returns>
+        [HttpPost]
+        public async Task<ActionResult<Customer>> CrearCliente([FromBody] Customer cliente)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Estado del modelo inválido para crear cliente");
+                    return BadRequest(ModelState);
+                }
+
+                cliente.RowGuid = Guid.NewGuid();
+                cliente.ModifiedDate = DateTime.UtcNow;
+
+                _context.Customers.Add(cliente);
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("Cliente {ClienteId} creado en {Timestamp}", cliente.CustomerID, DateTime.UtcNow);
+                
+                return CreatedAtAction(nameof(ObtenerCliente), new { id = cliente.CustomerID }, cliente);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear el cliente");
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Actualizar un cliente existente
+        /// </summary>
+        /// <param name="id">ID del cliente</param>
+        /// <param name="cliente">Datos actualizados del cliente</param>
+        /// <returns>Sin contenido si es exitoso</returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> ActualizarCliente(int id, [FromBody] Customer cliente)
+        {
+            try
+            {
+                if (id != cliente.CustomerID)
+                {
+                    return BadRequest("El ID del cliente no coincide");
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Estado del modelo inválido para actualizar cliente {ClienteId}", id);
+                    return BadRequest(ModelState);
+                }
+
+                _context.Entry(cliente).State = EntityState.Modified;
+                cliente.ModifiedDate = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Cliente {ClienteId} actualizado en {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!await ClienteExists(id))
+                {
+                    return NotFound();
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar el cliente {ClienteId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Eliminar un cliente
+        /// </summary>
+        /// <param name="id">ID del cliente</param>
+        /// <returns>Sin contenido si es exitoso</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> EliminarCliente(int id)
+        {
+            try
+            {
+                var cliente = await _context.Customers.FindAsync(id);
+                if (cliente == null)
+                {
+                    _logger.LogWarning("Cliente {ClienteId} no encontrado para eliminar", id);
+                    return NotFound($"Cliente con ID {id} no encontrado");
+                }
+
+                // Verificar si tiene órdenes
+                var tieneOrdenes = await _context.SalesOrderHeaders.AnyAsync(s => s.CustomerID == id);
+                if (tieneOrdenes)
+                {
+                    return BadRequest("No se puede eliminar un cliente que tiene órdenes asociadas");
+                }
+
+                _context.Customers.Remove(cliente);
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("Cliente {ClienteId} eliminado en {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar el cliente {ClienteId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        private async Task<bool> ClienteExists(int id)
+        {
+            return await _context.Customers.AnyAsync(e => e.CustomerID == id);
+        }
+    }
+}}

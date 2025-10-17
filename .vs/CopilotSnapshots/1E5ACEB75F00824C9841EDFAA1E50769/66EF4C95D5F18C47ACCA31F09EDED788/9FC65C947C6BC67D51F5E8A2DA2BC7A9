@@ -1,0 +1,55 @@
+﻿using AdventureWorks.Enterprise.Api.Data;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddRazorPages();
+
+// Add Entity Framework - Using SDESICASQL connection string
+builder.Services.AddDbContext<AdventureWorksDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SDESICASQL")));
+
+// Add API Controllers for Web API functionality
+builder.Services.AddControllers();
+
+// Add Swagger/OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { 
+        Title = "AdventureWorks Enterprise API", 
+        Version = "v1",
+        Description = "API para el Sistema de Gestión Empresarial AdventureWorks"
+    });
+});
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+else
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AdventureWorks Enterprise API v1");
+    });
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthorization();
+
+app.MapRazorPages();
+app.MapControllers();
+
+app.Run();

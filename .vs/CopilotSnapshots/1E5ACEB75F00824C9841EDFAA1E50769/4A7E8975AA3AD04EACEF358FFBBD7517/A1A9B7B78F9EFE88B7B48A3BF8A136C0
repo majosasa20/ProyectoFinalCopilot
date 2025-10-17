@@ -1,0 +1,349 @@
+﻿@page "/production/reports/low-inventory"
+@using AdventureWorks.Enterprise.WebApp.Models.Production
+@using AdventureWorks.Enterprise.WebApp.Services
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Components.Web
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Reporte Bajo Inventario - Portal Producción</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/production/products">Productos</a>
+                    </li>
+                    <li class="breadcrumb-item active">Reporte Bajo Inventario</li>
+                </ol>
+            </nav>
+            <h1 class="h2">
+                <i class="fas fa-exclamation-triangle text-danger"></i>
+                Reporte de Productos con Bajo Inventario
+            </h1>
+            <p class="text-muted">Productos que requieren reabastecimiento urgente</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" @onclick="Regresar">
+                <i class="fas fa-arrow-left"></i> Regresar
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <label class="form-label fw-bold">Umbral de Inventario:</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" @bind="umbralInventario" min="1" max="100">
+                        <button class="btn btn-primary" @onclick="GenerarReporte">
+                            <i class="fas fa-search"></i> Generar
+                        </button>
+                    </div>
+                    <small class="text-muted">Productos con inventario menor o igual a este valor</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="row">
+                @if (reporteGenerado && reporte != null)
+                {
+                    <div class="col-md-4">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h3>@reporte.Count(r => r.EstadoInventario == "SIN STOCK")</h3>
+                                <p class="mb-0">Sin Stock</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h3>@reporte.Count(r => r.EstadoInventario == "STOCK BAJO")</h3>
+                                <p class="mb-0">Stock Bajo</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h3>@reporte.Sum(r => r.CantidadEnInventario)</h3>
+                                <p class="mb-0">Total Unidades</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center p-4">
+            <div class="spinner-border text-danger" role="status">
+                <span class="visually-hidden">Generando reporte...</span>
+            </div>
+            <p class="mt-2">Consultando inventario...</p>
+        </div>
+    }
+    else if (reporteGenerado && reporte?.Any() == true)
+    {
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Productos con Inventario Crítico (@reporte.Count productos)
+                        </h5>
+                        <small>Umbral: @umbralInventario unidades o menos</small>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-light btn-sm" @onclick="ExportarReporte">
+                            <i class="fas fa-download"></i> Exportar
+                        </button>
+                        <button class="btn btn-outline-light btn-sm ms-2" @onclick="ImprimirReporte">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Prioridad</th>
+                                <th>Producto</th>
+                                <th>Categoría</th>
+                                <th>Inventario Actual</th>
+                                <th>Stock Seguridad</th>
+                                <th>Punto Reorden</th>
+                                <th>Estado</th>
+                                <th>Valor en Riesgo</th>
+                                <th>Ubicación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var producto in reporte.OrderBy(p => p.CantidadEnInventario))
+                            {
+                                <tr class="@GetRowClass(producto.EstadoInventario)">
+                                    <td class="text-center">
+                                        @if (producto.CantidadEnInventario == 0)
+                                        {
+                                            <i class="fas fa-exclamation-triangle text-danger fa-lg" title="Crítico"></i>
+                                        }
+                                        else if (producto.CantidadEnInventario <= 5)
+                                        {
+                                            <i class="fas fa-exclamation-circle text-warning fa-lg" title="Alto"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="fas fa-info-circle text-info" title="Medio"></i>
+                                        }
+                                    </td>
+                                    <td>
+                                        <strong>@producto.NombreProducto</strong>
+                                        <br><small class="text-muted">@producto.NumeroProducto</small>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(producto.Categoria))
+                                        {
+                                            <span class="badge bg-light text-dark">@producto.Categoria</span>
+                                            @if (!string.IsNullOrEmpty(producto.Subcategoria))
+                                            {
+                                                <br><small class="text-muted">@producto.Subcategoria</small>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Sin categoría</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge @GetInventoryBadgeClass(producto.CantidadEnInventario) fs-6">
+                                            @producto.CantidadEnInventario
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="text-muted">@producto.NivelStockSeguridad</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="text-info">@producto.PuntoReorden</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(producto.EstadoInventario)">
+                                            @producto.EstadoInventario
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong class="text-danger">
+                                            @((producto.CantidadEnInventario * producto.CostoEstandar).ToString("C"))
+                                        </strong>
+                                        <br><small class="text-muted">
+                                            Costo: @producto.CostoEstandar.ToString("C")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(producto.Ubicacion))
+                                        {
+                                            <span class="badge bg-secondary">@producto.Ubicacion</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">N/A</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                @onclick="() => VerProductoDetalle(producto.ProductID)">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success ms-1" 
+                                                @onclick="() => GenerarOrdenCompra(producto.ProductID)">
+                                            <i class="fas fa-shopping-cart"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="row">
+                    <div class="col">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Reporte generado el @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                        </small>
+                    </div>
+                    <div class="col-auto">
+                        <small class="text-muted">
+                            Total productos críticos: @reporte.Count
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (reporteGenerado && reporte?.Any() == false)
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i>
+            <strong>¡Excelente!</strong> No hay productos con inventario bajo según el umbral configurado (@umbralInventario unidades).
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            Configure el umbral de inventario y haga clic en "Generar" para ver el reporte.
+        </div>
+    }
+</div>
+
+@code {
+    private List<ReporteBajoInventarioDto>? reporte;
+    private bool isLoading = false;
+    private bool reporteGenerado = false;
+    private int umbralInventario = 10;
+
+    private async Task GenerarReporte()
+    {
+        try
+        {
+            isLoading = true;
+            reporteGenerado = false;
+            StateHasChanged();
+            
+            reporte = await ApiService.GetReporteProductosBajoInventarioAsync(umbralInventario);
+            reporteGenerado = true;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al generar reporte: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Regresar()
+    {
+        Navigation.NavigateTo("/production/products");
+    }
+
+    private void VerProductoDetalle(int productoId)
+    {
+        Navigation.NavigateTo($"/production/products/{productoId}");
+    }
+
+    private async Task GenerarOrdenCompra(int productoId)
+    {
+        await JSRuntime.InvokeVoidAsync("alert", $"Funcionalidad de orden de compra para producto {productoId} pendiente de implementar");
+    }
+
+    private void ExportarReporte()
+    {
+        JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de exportación pendiente de implementar");
+    }
+
+    private void ImprimirReporte()
+    {
+        JSRuntime.InvokeVoidAsync("window.print");
+    }
+
+    private string GetRowClass(string estado) => estado switch
+    {
+        "SIN STOCK" => "table-danger",
+        "STOCK BAJO" => "table-warning",
+        _ => ""
+    };
+
+    private string GetInventoryBadgeClass(int cantidad) => cantidad switch
+    {
+        0 => "bg-danger",
+        <= 5 => "bg-warning",
+        _ => "bg-info"
+    };
+
+    private string GetStatusBadgeClass(string estado) => estado switch
+    {
+        "SIN STOCK" => "bg-danger",
+        "STOCK BAJO" => "bg-warning",
+        _ => "bg-success"
+    };
+}
+
+<style>
+    .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+    
+    .table-danger {
+        --bs-table-bg: rgba(220, 53, 69, 0.1);
+    }
+    
+    .table-warning {
+        --bs-table-bg: rgba(255, 193, 7, 0.1);
+    }
+
+    .fa-lg {
+        font-size: 1.2em;
+    }
+
+    @media print {
+        .btn, .breadcrumb, .card-header .row .col-auto {
+            display: none !important;
+        }
+    }
+</style>

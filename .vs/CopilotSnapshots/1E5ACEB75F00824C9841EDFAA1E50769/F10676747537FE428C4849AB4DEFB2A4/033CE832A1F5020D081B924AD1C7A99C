@@ -1,0 +1,428 @@
+﻿# Estándares de Programación Modernos - AdventureWorks Enterprise
+
+## 1. Convenciones de Nombres y Codificación
+
+### C# (.NET 8)
+- **PascalCase:** Clases, métodos, propiedades, interfaces, enums, namespaces
+- **camelCase:** Variables locales, parámetros de método, campos privados
+- **SCREAMING_SNAKE_CASE:** Constantes públicas
+- **Prefijos:** Interfaces con `I` (ej: `IUserService`), campos privados con `_` (ej: `_userRepository`)
+
+```csharp
+public interface IUserService
+{
+    Task<User> GetUserAsync(int userId);
+}
+
+public class UserService : IUserService
+{
+    private readonly IUserRepository _userRepository;
+    private const int MAX_RETRY_ATTEMPTS = 3;
+    
+    public async Task<User> GetUserAsync(int userId)
+    {
+        // Implementation
+    }
+}
+```
+
+### JavaScript/TypeScript
+- **camelCase:** Variables, funciones, métodos
+- **PascalCase:** Clases, constructores, React componentes
+- **SCREAMING_SNAKE_CASE:** Constantes
+- **kebab-case:** Nombres de archivos CSS, HTML
+
+### SQL Server
+- **PascalCase:** Tablas, columnas, vistas
+- **Prefijos específicos:**
+  - `usp_` para stored procedures de usuario
+  - `fn_` para funciones escalares
+  - `tvf_` para funciones de tabla
+  - `vw_` para vistas
+
+## 2. Arquitectura y Estructura de Proyecto
+
+### Arquitectura Clean/Onion
+```
+src/
+├── AdventureWorks.Domain/           # Entidades y reglas de negocio
+├── AdventureWorks.Application/      # Casos de uso y DTOs
+├── AdventureWorks.Infrastructure/   # Acceso a datos y servicios externos
+├── AdventureWorks.Web/             # Razor Pages/API Controllers
+└── tests/
+    ├── AdventureWorks.UnitTests/
+    ├── AdventureWorks.IntegrationTests/
+    └── AdventureWorks.E2ETests/
+```
+
+### Organización de Carpetas por Funcionalidad
+```
+Pages/
+├── Products/
+│   ├── Index.cshtml
+│   ├── Index.cshtml.cs
+│   ├── Details.cshtml
+│   └── Details.cshtml.cs
+├── Orders/
+└── Shared/
+```
+
+## 3. Principios SOLID y Patrones de Diseño
+
+### Inyección de Dependencias
+```csharp
+// Program.cs
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+// Razor Page
+public class IndexModel : PageModel
+{
+    private readonly IUserService _userService;
+    
+    public IndexModel(IUserService userService)
+    {
+        _userService = userService;
+    }
+}
+```
+
+### Repository Pattern con Unit of Work
+```csharp
+public interface IUnitOfWork : IDisposable
+{
+    IUserRepository Users { get; }
+    IOrderRepository Orders { get; }
+    Task<int> SaveChangesAsync();
+}
+```
+
+### Result Pattern para Manejo de Errores
+```csharp
+public class Result<T>
+{
+    public bool IsSuccess { get; }
+    public T Value { get; }
+    public string Error { get; }
+    
+    public static Result<T> Success(T value) => new(true, value, string.Empty);
+    public static Result<T> Failure(string error) => new(false, default, error);
+}
+```
+
+## 4. Documentación y Comentarios Modernos
+
+### XML Documentation
+```csharp
+/// <summary>
+/// Retrieves a user by their unique identifier
+/// </summary>
+/// <param name="userId">The unique identifier of the user</param>
+/// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+/// <returns>A <see cref="Result{User}"/> containing the user if found</returns>
+/// <exception cref="ArgumentException">Thrown when userId is invalid</exception>
+public async Task<Result<User>> GetUserAsync(int userId, CancellationToken cancellationToken = default)
+```
+
+### Comentarios Explicativos
+```csharp
+// TODO: Migrate to new authentication system by Q2 2024
+// HACK: Temporary workaround for legacy API compatibility
+// NOTE: This algorithm is based on RFC 7519 JWT specification
+```
+
+## 5. Manejo de Errores Moderno
+
+### Global Exception Handling
+```csharp
+public class GlobalExceptionMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<GlobalExceptionMiddleware> _logger;
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unhandled exception occurred");
+            await HandleExceptionAsync(context, ex);
+        }
+    }
+}
+```
+
+### Structured Logging
+```csharp
+_logger.LogInformation("User {UserId} accessed product {ProductId} at {Timestamp}", 
+    userId, productId, DateTime.UtcNow);
+```
+
+## 6. Seguridad Moderna
+
+### Input Validation y Sanitización
+```csharp
+public class CreateUserRequest
+{
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email format")]
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100, MinimumLength = 2)]
+    public string Name { get; set; } = string.Empty;
+}
+```
+
+### CSRF Protection
+```html
+<form method="post">
+    @Html.AntiForgeryToken()
+    <!-- form content -->
+</form>
+```
+
+### Content Security Policy
+```csharp
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("Content-Security-Policy", 
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'");
+    await next();
+});
+```
+
+### Secrets Management
+```csharp
+// appsettings.json (desarrollo)
+{
+    "ConnectionStrings": {
+        "DefaultConnection": "Data Source=localhost;..."
+    }
+}
+
+// Producción: Azure Key Vault
+builder.Configuration.AddAzureKeyVault(keyVaultEndpoint, credential);
+```
+
+## 7. Testing Estratégico
+
+### Unit Tests
+```csharp
+[Test]
+public async Task GetUserAsync_ValidId_ReturnsUser()
+{
+    // Arrange
+    var mockRepo = new Mock<IUserRepository>();
+    var expectedUser = new User { Id = 1, Name = "Test User" };
+    mockRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(expectedUser);
+    
+    var service = new UserService(mockRepo.Object);
+    
+    // Act
+    var result = await service.GetUserAsync(1);
+    
+    // Assert
+    result.Should().BeEquivalentTo(expectedUser);
+}
+```
+
+### Integration Tests
+```csharp
+[Test]
+public async Task GetUser_ValidRequest_ReturnsOkResult()
+{
+    // Arrange
+    var client = _factory.CreateClient();
+    
+    // Act
+    var response = await client.GetAsync("/api/users/1");
+    
+    // Assert
+    response.StatusCode.Should().Be(HttpStatusCode.OK);
+}
+```
+
+## 8. Performance y Optimización
+
+### Async/Await Best Practices
+```csharp
+// ✅ Correcto
+public async Task<List<User>> GetUsersAsync()
+{
+    return await _repository.GetAllAsync().ConfigureAwait(false);
+}
+
+// ❌ Incorrecto - Async void
+public async void ProcessData() { }
+
+// ❌ Incorrecto - Sync over async
+public User GetUser(int id)
+{
+    return GetUserAsync(id).Result; // Deadlock risk
+}
+```
+
+### Entity Framework Optimizations
+```csharp
+// Include relacionados
+var users = await _context.Users
+    .Include(u => u.Orders)
+    .ThenInclude(o => o.OrderItems)
+    .Where(u => u.IsActive)
+    .ToListAsync();
+
+// Projection para reducir datos
+var userSummaries = await _context.Users
+    .Select(u => new UserSummary { Id = u.Id, Name = u.Name })
+    .ToListAsync();
+```
+
+## 9. Razor Pages Específicas
+
+### Page Model Structure
+```csharp
+public class IndexModel : PageModel
+{
+    private readonly IUserService _userService;
+    private readonly ILogger<IndexModel> _logger;
+
+    [BindProperty]
+    public CreateUserRequest NewUser { get; set; } = new();
+
+    public List<UserViewModel> Users { get; set; } = new();
+
+    public IndexModel(IUserService userService, ILogger<IndexModel> logger)
+    {
+        _userService = userService;
+        _logger = logger;
+    }
+
+    public async Task<IActionResult> OnGetAsync()
+    {
+        var result = await _userService.GetAllUsersAsync();
+        if (result.IsSuccess)
+        {
+            Users = result.Value.Select(u => new UserViewModel(u)).ToList();
+            return Page();
+        }
+
+        TempData["Error"] = result.Error;
+        return RedirectToPage("/Error");
+    }
+
+    public async Task<IActionResult> OnPostAsync()
+    {
+        if (!ModelState.IsValid)
+            return Page();
+
+        var result = await _userService.CreateUserAsync(NewUser);
+        if (result.IsSuccess)
+        {
+            TempData["Success"] = "User created successfully";
+            return RedirectToPage();
+        }
+
+        ModelState.AddModelError(string.Empty, result.Error);
+        return Page();
+    }
+}
+```
+
+### ViewModels y DTOs
+```csharp
+public record UserViewModel(int Id, string Name, string Email, DateTime CreatedAt)
+{
+    public static implicit operator UserViewModel(User user) =>
+        new(user.Id, user.Name, user.Email, user.CreatedAt);
+}
+```
+
+## 10. CI/CD y DevOps
+
+### GitHub Actions / Azure DevOps
+```yaml
+name: CI/CD Pipeline
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+    - name: Code Coverage
+      run: dotnet test --collect:"XPlat Code Coverage"
+```
+
+## 11. Code Quality Tools
+
+### EditorConfig
+```ini
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+
+[*.{js,ts,json}]
+indent_size = 2
+```
+
+### SonarQube Integration
+```xml
+<PackageReference Include="SonarAnalyzer.CSharp" Version="9.12.0.78982">
+  <PrivateAssets>all</PrivateAssets>
+  <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+</PackageReference>
+```
+
+## 12. Referencias y Recursos
+
+### Documentación Oficial
+- [.NET 8 Documentation](https://learn.microsoft.com/en-us/dotnet/)
+- [ASP.NET Core Razor Pages](https://learn.microsoft.com/en-us/aspnet/core/razor-pages/)
+- [Entity Framework Core](https://learn.microsoft.com/en-us/ef/core/)
+
+### Guías de Seguridad
+- [OWASP Top 10 2021](https://owasp.org/www-project-top-ten/)
+- [ASP.NET Core Security](https://learn.microsoft.com/en-us/aspnet/core/security/)
+- [Secure Coding Guidelines](https://learn.microsoft.com/en-us/dotnet/standard/security/secure-coding-guidelines)
+
+### Herramientas Recomendadas
+- **IDE:** Visual Studio 2022, VS Code, JetBrains Rider
+- **Testing:** NUnit, xUnit, FluentAssertions, Moq
+- **Code Analysis:** SonarQube, GitHub CodeQL, Roslyn Analyzers
+- **Performance:** BenchmarkDotNet, Application Insights
+
+---
+
+## Revisión y Mantenimiento
+
+Este documento debe revisarse trimestralmente y actualizarse con:
+- Nuevas versiones de .NET y tecnologías relacionadas
+- Nuevas amenazas de seguridad y vulnerabilidades
+- Feedback del equipo de desarrollo
+- Cambios en las mejores prácticas de la industria
+
+**Última actualización:** Diciembre 2024
+**Próxima revisión:** Marzo 2025

@@ -1,0 +1,1531 @@
+﻿# Stored Procedures - AdventureWorks Enterprise API
+*Generado para el proyecto AdventureWorks Enterprise API con sufijo "_Sagastume"*
+
+## 📋 Índice de Stored Procedures
+
+### 🧑‍💼 Human Resources - Empleados
+- [usp_GetAllEmployees_Sagastume](#usp_getallemployees_sagastume)
+- [usp_GetEmployeeById_Sagastume](#usp_getemployeebyid_sagastume)
+- [usp_CreateEmployee_Sagastume](#usp_createemployee_sagastume)
+- [usp_UpdateEmployee_Sagastume](#usp_updateemployee_sagastume)
+- [usp_DeleteEmployee_Sagastume](#usp_deleteemployee_sagastume)
+- [usp_EmpleadosConMasTiempoEnDepartamento_Sagastume](#usp_empleadosconmastiempoendepartamento_sagastume) *(Existente)*
+
+### 🏢 Departamentos
+- [usp_GetAllDepartments_Sagastume](#usp_getalldepartments_sagastume)
+- [usp_GetDepartmentById_Sagastume](#usp_getdepartmentbyid_sagastume)
+- [usp_CreateDepartment_Sagastume](#usp_createdepartment_sagastume)
+- [usp_UpdateDepartment_Sagastume](#usp_updatedepartment_sagastume)
+- [usp_DeleteDepartment_Sagastume](#usp_deletedepartment_sagastume)
+
+### 🛒 Sales - Órdenes
+- [usp_GetAllSalesOrders_Sagastume](#usp_getallsalesorders_sagastume)
+- [usp_GetSalesOrderById_Sagastume](#usp_getsalesorderbyid_sagastume)
+- [usp_GetSalesOrderDetails_Sagastume](#usp_getsalesorderdetails_sagastume)
+- [usp_GetOrdersByCustomer_Sagastume](#usp_getordersbycustomer_sagastume)
+- [usp_CreateSalesOrder_Sagastume](#usp_createsalesorder_sagastume)
+- [usp_UpdateSalesOrder_Sagastume](#usp_updatesalesorder_sagastume)
+- [usp_DeleteSalesOrder_Sagastume](#usp_deletesalesorder_sagastume)
+- [usp_Top10ProductosMasVendidos_Sagastume](#usp_top10productosmasvendidos_sagastume) *(Existente)*
+
+### 👥 Clientes
+- [usp_GetAllCustomers_Sagastume](#usp_getallcustomers_sagastume)
+- [usp_GetCustomerById_Sagastume](#usp_getcustomerbyid_sagastume)
+- [usp_CreateCustomer_Sagastume](#usp_createcustomer_sagastume)
+- [usp_UpdateCustomer_Sagastume](#usp_updatecustomer_sagastume)
+- [usp_DeleteCustomer_Sagastume](#usp_deletecustomer_sagastume)
+
+### 📦 Production - Productos
+- [usp_GetAllProducts_Sagastume](#usp_getallproducts_sagastume)
+- [usp_GetProductById_Sagastume](#usp_getproductbyid_sagastume)
+- [usp_GetProductsByCategory_Sagastume](#usp_getproductsbycategory_sagastume)
+- [usp_GetProductInventory_Sagastume](#usp_getproductinventory_sagastume)
+- [usp_CreateProduct_Sagastume](#usp_createproduct_sagastume)
+- [usp_UpdateProduct_Sagastume](#usp_updateproduct_sagastume)
+- [usp_DeleteProduct_Sagastume](#usp_deleteproduct_sagastume)
+- [usp_UpdateProductInventory_Sagastume](#usp_updateproductinventory_sagastume)
+- [usp_ProductosConBajoInventario_Sagastume](#usp_productosconbajoinventario_sagastume) *(Existente)*
+
+### 🔧 Órdenes de Trabajo
+- [usp_GetAllWorkOrders_Sagastume](#usp_getallworkorders_sagastume)
+- [usp_GetWorkOrderById_Sagastume](#usp_getworkorderbyid_sagastume)
+- [usp_GetWorkOrdersByProduct_Sagastume](#usp_getworkordersbyproduct_sagastume)
+- [usp_CreateWorkOrder_Sagastume](#usp_createworkorder_sagastume)
+- [usp_UpdateWorkOrder_Sagastume](#usp_updateworkorder_sagastume)
+- [usp_DeleteWorkOrder_Sagastume](#usp_deleteworkorder_sagastume)
+
+---
+
+## 🧑‍💼 Human Resources - Empleados
+
+### usp_GetAllEmployees_Sagastume
+```sql
+CREATE PROCEDURE usp_GetAllEmployees_Sagastume
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        e.BusinessEntityID,
+        e.NationalIDNumber,
+        e.LoginID,
+        e.OrganizationLevel,
+        e.JobTitle,
+        e.BirthDate,
+        e.MaritalStatus,
+        e.Gender,
+        e.HireDate,
+        e.SalariedFlag,
+        e.VacationHours,
+        e.SickLeaveHours,
+        e.CurrentFlag,
+        e.ModifiedDate,
+        -- Departamento actual
+        d.DepartmentID,
+        d.Name as DepartmentName,
+        d.GroupName,
+        edh.StartDate as DepartmentStartDate
+    FROM HumanResources.Employee e
+    LEFT JOIN HumanResources.EmployeeDepartmentHistory edh ON e.BusinessEntityID = edh.BusinessEntityID 
+        AND edh.EndDate IS NULL
+    LEFT JOIN HumanResources.Department d ON edh.DepartmentID = d.DepartmentID
+    WHERE e.CurrentFlag = 1
+    ORDER BY e.BusinessEntityID;
+END
+```
+
+### usp_GetEmployeeById_Sagastume
+```sql
+CREATE PROCEDURE usp_GetEmployeeById_Sagastume
+    @BusinessEntityID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        e.BusinessEntityID,
+        e.NationalIDNumber,
+        e.LoginID,
+        e.OrganizationLevel,
+        e.JobTitle,
+        e.BirthDate,
+        e.MaritalStatus,
+        e.Gender,
+        e.HireDate,
+        e.SalariedFlag,
+        e.VacationHours,
+        e.SickLeaveHours,
+        e.CurrentFlag,
+        e.ModifiedDate
+    FROM HumanResources.Employee e
+    WHERE e.BusinessEntityID = @BusinessEntityID;
+    
+    -- Historial de departamentos
+    SELECT 
+        edh.BusinessEntityID,
+        edh.DepartmentID,
+        d.Name as DepartmentName,
+        d.GroupName,
+        edh.StartDate,
+        edh.EndDate,
+        s.Name as ShiftName
+    FROM HumanResources.EmployeeDepartmentHistory edh
+    INNER JOIN HumanResources.Department d ON edh.DepartmentID = d.DepartmentID
+    INNER JOIN HumanResources.Shift s ON edh.ShiftID = s.ShiftID
+    WHERE edh.BusinessEntityID = @BusinessEntityID
+    ORDER BY edh.StartDate DESC;
+    
+    -- Historial de pagos
+    SELECT 
+        eph.BusinessEntityID,
+        eph.RateChangeDate,
+        eph.Rate,
+        eph.PayFrequency
+    FROM HumanResources.EmployeePayHistory eph
+    WHERE eph.BusinessEntityID = @BusinessEntityID
+    ORDER BY eph.RateChangeDate DESC;
+END
+```
+
+### usp_CreateEmployee_Sagastume
+```sql
+CREATE PROCEDURE usp_CreateEmployee_Sagastume
+    @BusinessEntityID INT,
+    @NationalIDNumber NVARCHAR(15),
+    @LoginID NVARCHAR(256),
+    @OrganizationLevel SMALLINT = NULL,
+    @JobTitle NVARCHAR(50),
+    @BirthDate DATE,
+    @MaritalStatus NCHAR(1),
+    @Gender NCHAR(1),
+    @HireDate DATE,
+    @SalariedFlag BIT = 1,
+    @VacationHours SMALLINT = 0,
+    @SickLeaveHours SMALLINT = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        INSERT INTO HumanResources.Employee (
+            BusinessEntityID,
+            NationalIDNumber,
+            LoginID,
+            OrganizationLevel,
+            JobTitle,
+            BirthDate,
+            MaritalStatus,
+            Gender,
+            HireDate,
+            SalariedFlag,
+            VacationHours,
+            SickLeaveHours,
+            CurrentFlag,
+            rowguid,
+            ModifiedDate
+        )
+        VALUES (
+            @BusinessEntityID,
+            @NationalIDNumber,
+            @LoginID,
+            @OrganizationLevel,
+            @JobTitle,
+            @BirthDate,
+            @MaritalStatus,
+            @Gender,
+            @HireDate,
+            @SalariedFlag,
+            @VacationHours,
+            @SickLeaveHours,
+            1,
+            NEWID(),
+            GETDATE()
+        );
+        
+        SELECT @BusinessEntityID as BusinessEntityID;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_UpdateEmployee_Sagastume
+```sql
+CREATE PROCEDURE usp_UpdateEmployee_Sagastume
+    @BusinessEntityID INT,
+    @NationalIDNumber NVARCHAR(15),
+    @LoginID NVARCHAR(256),
+    @OrganizationLevel SMALLINT = NULL,
+    @JobTitle NVARCHAR(50),
+    @BirthDate DATE,
+    @MaritalStatus NCHAR(1),
+    @Gender NCHAR(1),
+    @HireDate DATE,
+    @SalariedFlag BIT,
+    @VacationHours SMALLINT,
+    @SickLeaveHours SMALLINT,
+    @CurrentFlag BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        UPDATE HumanResources.Employee
+        SET 
+            NationalIDNumber = @NationalIDNumber,
+            LoginID = @LoginID,
+            OrganizationLevel = @OrganizationLevel,
+            JobTitle = @JobTitle,
+            BirthDate = @BirthDate,
+            MaritalStatus = @MaritalStatus,
+            Gender = @Gender,
+            HireDate = @HireDate,
+            SalariedFlag = @SalariedFlag,
+            VacationHours = @VacationHours,
+            SickLeaveHours = @SickLeaveHours,
+            CurrentFlag = @CurrentFlag,
+            ModifiedDate = GETDATE()
+        WHERE BusinessEntityID = @BusinessEntityID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_DeleteEmployee_Sagastume
+```sql
+CREATE PROCEDURE usp_DeleteEmployee_Sagastume
+    @BusinessEntityID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- Soft delete - marcar como inactivo
+        UPDATE HumanResources.Employee
+        SET 
+            CurrentFlag = 0,
+            ModifiedDate = GETDATE()
+        WHERE BusinessEntityID = @BusinessEntityID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_EmpleadosConMasTiempoEnDepartamento_Sagastume
+```sql
+CREATE PROCEDURE [dbo].[usp_EmpleadosConMasTiempoEnDepartamento_Sagastume]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        e.BusinessEntityID,
+        p.FirstName + ' ' + ISNULL(p.LastName, '') AS NombreCompleto,
+        e.JobTitle AS Cargo,
+        d.Name AS Departamento,
+        d.GroupName AS GrupoDepartamento,
+        edh.StartDate AS FechaInicioDepartamento,
+        DATEDIFF(DAY, edh.StartDate, GETDATE()) AS DiasEnDepartamento,
+        DATEDIFF(YEAR, edh.StartDate, GETDATE()) AS AniosEnDepartamento,
+        e.HireDate AS FechaContratacion
+    FROM HumanResources.Employee e
+    INNER JOIN Person.Person p ON e.BusinessEntityID = p.BusinessEntityID
+    INNER JOIN HumanResources.EmployeeDepartmentHistory edh ON e.BusinessEntityID = edh.BusinessEntityID
+    INNER JOIN HumanResources.Department d ON edh.DepartmentID = d.DepartmentID
+    WHERE edh.EndDate IS NULL -- Solo departamentos actuales
+      AND e.CurrentFlag = 1 -- Solo empleados activos
+    ORDER BY DiasEnDepartamento DESC;
+END;
+```
+
+---
+
+## 🏢 Departamentos
+
+### usp_GetAllDepartments_Sagastume
+```sql
+CREATE PROCEDURE usp_GetAllDepartments_Sagastume
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        DepartmentID,
+        Name,
+        GroupName,
+        ModifiedDate
+    FROM HumanResources.Department
+    ORDER BY Name;
+END
+```
+
+### usp_GetDepartmentById_Sagastume
+```sql
+CREATE PROCEDURE usp_GetDepartmentById_Sagastume
+    @DepartmentID SMALLINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        DepartmentID,
+        Name,
+        GroupName,
+        ModifiedDate
+    FROM HumanResources.Department
+    WHERE DepartmentID = @DepartmentID;
+END
+```
+
+### usp_CreateDepartment_Sagastume
+```sql
+CREATE PROCEDURE usp_CreateDepartment_Sagastume
+    @Name NVARCHAR(50),
+    @GroupName NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        INSERT INTO HumanResources.Department (
+            Name,
+            GroupName,
+            ModifiedDate
+        )
+        VALUES (
+            @Name,
+            @GroupName,
+            GETDATE()
+        );
+        
+        SELECT SCOPE_IDENTITY() as DepartmentID;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_UpdateDepartment_Sagastume
+```sql
+CREATE PROCEDURE usp_UpdateDepartment_Sagastume
+    @DepartmentID SMALLINT,
+    @Name NVARCHAR(50),
+    @GroupName NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        UPDATE HumanResources.Department
+        SET 
+            Name = @Name,
+            GroupName = @GroupName,
+            ModifiedDate = GETDATE()
+        WHERE DepartmentID = @DepartmentID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_DeleteDepartment_Sagastume
+```sql
+CREATE PROCEDURE usp_DeleteDepartment_Sagastume
+    @DepartmentID SMALLINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- Verificar si tiene empleados asignados
+        IF EXISTS (SELECT 1 FROM HumanResources.EmployeeDepartmentHistory WHERE DepartmentID = @DepartmentID)
+        BEGIN
+            RAISERROR('No se puede eliminar un departamento que tiene empleados asignados', 16, 1);
+            RETURN;
+        END
+        
+        DELETE FROM HumanResources.Department
+        WHERE DepartmentID = @DepartmentID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+---
+
+## 🛒 Sales - Órdenes
+
+### usp_GetAllSalesOrders_Sagastume
+```sql
+CREATE PROCEDURE usp_GetAllSalesOrders_Sagastume
+    @TopCount INT = 100
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT TOP (@TopCount)
+        soh.SalesOrderID,
+        soh.RevisionNumber,
+        soh.OrderDate,
+        soh.DueDate,
+        soh.ShipDate,
+        soh.Status,
+        soh.OnlineOrderFlag,
+        soh.CustomerID,
+        c.AccountNumber as CustomerAccountNumber,
+        soh.SalesPersonID,
+        soh.TerritoryID,
+        st.Name as TerritoryName,
+        soh.SubTotal,
+        soh.TaxAmt,
+        soh.Freight,
+        soh.TotalDue,
+        soh.ModifiedDate
+    FROM Sales.SalesOrderHeader soh
+    LEFT JOIN Sales.Customer c ON soh.CustomerID = c.CustomerID
+    LEFT JOIN Sales.SalesTerritory st ON soh.TerritoryID = st.TerritoryID
+    ORDER BY soh.OrderDate DESC;
+END
+```
+
+### usp_GetSalesOrderById_Sagastume
+```sql
+CREATE PROCEDURE usp_GetSalesOrderById_Sagastume
+    @SalesOrderID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        soh.SalesOrderID,
+        soh.RevisionNumber,
+        soh.OrderDate,
+        soh.DueDate,
+        soh.ShipDate,
+        soh.Status,
+        soh.OnlineOrderFlag,
+        soh.CustomerID,
+        c.AccountNumber as CustomerAccountNumber,
+        soh.SalesPersonID,
+        soh.TerritoryID,
+        st.Name as TerritoryName,
+        soh.SubTotal,
+        soh.TaxAmt,
+        soh.Freight,
+        soh.TotalDue,
+        soh.ModifiedDate
+    FROM Sales.SalesOrderHeader soh
+    LEFT JOIN Sales.Customer c ON soh.CustomerID = c.CustomerID
+    LEFT JOIN Sales.SalesTerritory st ON soh.TerritoryID = st.TerritoryID
+    WHERE soh.SalesOrderID = @SalesOrderID;
+END
+```
+
+### usp_GetSalesOrderDetails_Sagastume
+```sql
+CREATE PROCEDURE usp_GetSalesOrderDetails_Sagastume
+    @SalesOrderID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        sod.SalesOrderID,
+        sod.SalesOrderDetailID,
+        sod.OrderQty,
+        sod.ProductID,
+        p.Name as ProductName,
+        p.ProductNumber,
+        sod.SpecialOfferID,
+        so.Description as SpecialOfferDescription,
+        sod.UnitPrice,
+        sod.UnitPriceDiscount,
+        sod.LineTotal,
+        sod.ModifiedDate
+    FROM Sales.SalesOrderDetail sod
+    INNER JOIN Production.Product p ON sod.ProductID = p.ProductID
+    LEFT JOIN Sales.SpecialOffer so ON sod.SpecialOfferID = so.SpecialOfferID
+    WHERE sod.SalesOrderID = @SalesOrderID
+    ORDER BY sod.SalesOrderDetailID;
+END
+```
+
+### usp_GetOrdersByCustomer_Sagastume
+```sql
+CREATE PROCEDURE usp_GetOrdersByCustomer_Sagastume
+    @CustomerID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        soh.SalesOrderID,
+        soh.RevisionNumber,
+        soh.OrderDate,
+        soh.DueDate,
+        soh.ShipDate,
+        soh.Status,
+        soh.OnlineOrderFlag,
+        soh.SubTotal,
+        soh.TaxAmt,
+        soh.Freight,
+        soh.TotalDue,
+        soh.ModifiedDate
+    FROM Sales.SalesOrderHeader soh
+    WHERE soh.CustomerID = @CustomerID
+    ORDER BY soh.OrderDate DESC;
+END
+```
+
+### usp_CreateSalesOrder_Sagastume
+```sql
+CREATE PROCEDURE usp_CreateSalesOrder_Sagastume
+    @CustomerID INT,
+    @SalesPersonID INT = NULL,
+    @TerritoryID INT = NULL,
+    @OrderDate DATETIME = NULL,
+    @DueDate DATETIME = NULL,
+    @OnlineOrderFlag BIT = 0,
+    @SubTotal MONEY = 0,
+    @TaxAmt MONEY = 0,
+    @Freight MONEY = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        SET @OrderDate = ISNULL(@OrderDate, GETDATE());
+        SET @DueDate = ISNULL(@DueDate, DATEADD(DAY, 7, @OrderDate));
+        
+        INSERT INTO Sales.SalesOrderHeader (
+            RevisionNumber,
+            OrderDate,
+            DueDate,
+            Status,
+            OnlineOrderFlag,
+            CustomerID,
+            SalesPersonID,
+            TerritoryID,
+            SubTotal,
+            TaxAmt,
+            Freight,
+            TotalDue,
+            rowguid,
+            ModifiedDate
+        )
+        VALUES (
+            1,
+            @OrderDate,
+            @DueDate,
+            1, -- Pendiente
+            @OnlineOrderFlag,
+            @CustomerID,
+            @SalesPersonID,
+            @TerritoryID,
+            @SubTotal,
+            @TaxAmt,
+            @Freight,
+            @SubTotal + @TaxAmt + @Freight,
+            NEWID(),
+            GETDATE()
+        );
+        
+        SELECT SCOPE_IDENTITY() as SalesOrderID;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_UpdateSalesOrder_Sagastume
+```sql
+CREATE PROCEDURE usp_UpdateSalesOrder_Sagastume
+    @SalesOrderID INT,
+    @OrderDate DATETIME,
+    @DueDate DATETIME,
+    @ShipDate DATETIME = NULL,
+    @Status TINYINT,
+    @OnlineOrderFlag BIT,
+    @CustomerID INT,
+    @SalesPersonID INT = NULL,
+    @TerritoryID INT = NULL,
+    @SubTotal MONEY,
+    @TaxAmt MONEY,
+    @Freight MONEY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        UPDATE Sales.SalesOrderHeader
+        SET 
+            RevisionNumber = RevisionNumber + 1,
+            OrderDate = @OrderDate,
+            DueDate = @DueDate,
+            ShipDate = @ShipDate,
+            Status = @Status,
+            OnlineOrderFlag = @OnlineOrderFlag,
+            CustomerID = @CustomerID,
+            SalesPersonID = @SalesPersonID,
+            TerritoryID = @TerritoryID,
+            SubTotal = @SubTotal,
+            TaxAmt = @TaxAmt,
+            Freight = @Freight,
+            TotalDue = @SubTotal + @TaxAmt + @Freight,
+            ModifiedDate = GETDATE()
+        WHERE SalesOrderID = @SalesOrderID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_DeleteSalesOrder_Sagastume
+```sql
+CREATE PROCEDURE usp_DeleteSalesOrder_Sagastume
+    @SalesOrderID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- Verificar si la orden puede ser eliminada
+        DECLARE @Status TINYINT;
+        SELECT @Status = Status FROM Sales.SalesOrderHeader WHERE SalesOrderID = @SalesOrderID;
+        
+        IF @Status > 1
+        BEGIN
+            RAISERROR('No se puede eliminar una orden que ya ha sido procesada', 16, 1);
+            RETURN;
+        END
+        
+        -- Eliminar detalles primero
+        DELETE FROM Sales.SalesOrderDetail WHERE SalesOrderID = @SalesOrderID;
+        
+        -- Eliminar orden
+        DELETE FROM Sales.SalesOrderHeader WHERE SalesOrderID = @SalesOrderID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_Top10ProductosMasVendidos_Sagastume
+```sql
+USE [AdventureWorks2014]
+GO
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[usp_Top10ProductosMasVendidos_Sagastume]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT TOP 10
+        p.ProductID,
+        p.Name AS NombreProducto,
+        p.ProductNumber AS NumeroProducto,
+        pc.Name AS Categoria,
+        ps.Name AS Subcategoria,
+        SUM(sod.OrderQty) AS CantidadTotalVendida,
+        SUM(sod.LineTotal) AS VentasTotales,
+        AVG(sod.UnitPrice) AS PrecioPromedioVenta,
+        COUNT(DISTINCT soh.SalesOrderID) AS NumeroOrdenes,
+        p.ListPrice AS PrecioLista
+    FROM Production.Product p
+    INNER JOIN Sales.SalesOrderDetail sod ON p.ProductID = sod.ProductID
+    INNER JOIN Sales.SalesOrderHeader soh ON sod.SalesOrderID = soh.SalesOrderID
+    LEFT JOIN Production.ProductSubcategory ps ON p.ProductSubcategoryID = ps.ProductSubcategoryID
+    LEFT JOIN Production.ProductCategory pc ON ps.ProductCategoryID = pc.ProductCategoryID
+    WHERE soh.Status IN (3, 5) -- Solo órdenes completadas y enviadas
+    GROUP BY 
+        p.ProductID, 
+        p.Name, 
+        p.ProductNumber, 
+        pc.Name, 
+        ps.Name, 
+        p.ListPrice
+    ORDER BY CantidadTotalVendida DESC;
+END;
+GO
+```
+
+---
+
+## 👥 Clientes
+
+### usp_GetAllCustomers_Sagastume
+```sql
+CREATE PROCEDURE usp_GetAllCustomers_Sagastume
+    @TopCount INT = 100
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT TOP (@TopCount)
+        c.CustomerID,
+        c.PersonID,
+        c.StoreID,
+        s.Name as StoreName,
+        c.TerritoryID,
+        st.Name as TerritoryName,
+        c.AccountNumber,
+        c.ModifiedDate
+    FROM Sales.Customer c
+    LEFT JOIN Sales.Store s ON c.StoreID = s.BusinessEntityID
+    LEFT JOIN Sales.SalesTerritory st ON c.TerritoryID = st.TerritoryID
+    ORDER BY c.CustomerID;
+END
+```
+
+### usp_GetCustomerById_Sagastume
+```sql
+CREATE PROCEDURE usp_GetCustomerById_Sagastume
+    @CustomerID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        c.CustomerID,
+        c.PersonID,
+        c.StoreID,
+        s.Name as StoreName,
+        c.TerritoryID,
+        st.Name as TerritoryName,
+        c.AccountNumber,
+        c.ModifiedDate
+    FROM Sales.Customer c
+    LEFT JOIN Sales.Store s ON c.StoreID = s.BusinessEntityID
+    LEFT JOIN Sales.SalesTerritory st ON c.TerritoryID = st.TerritoryID
+    WHERE c.CustomerID = @CustomerID;
+END
+```
+
+### usp_CreateCustomer_Sagastume
+```sql
+CREATE PROCEDURE usp_CreateCustomer_Sagastume
+    @PersonID INT = NULL,
+    @StoreID INT = NULL,
+    @TerritoryID INT = NULL,
+    @AccountNumber NVARCHAR(10) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        INSERT INTO Sales.Customer (
+            PersonID,
+            StoreID,
+            TerritoryID,
+            AccountNumber,
+            rowguid,
+            ModifiedDate
+        )
+        VALUES (
+            @PersonID,
+            @StoreID,
+            @TerritoryID,
+            @AccountNumber,
+            NEWID(),
+            GETDATE()
+        );
+        
+        SELECT SCOPE_IDENTITY() as CustomerID;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_UpdateCustomer_Sagastume
+```sql
+CREATE PROCEDURE usp_UpdateCustomer_Sagastume
+    @CustomerID INT,
+    @PersonID INT = NULL,
+    @StoreID INT = NULL,
+    @TerritoryID INT = NULL,
+    @AccountNumber NVARCHAR(10) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        UPDATE Sales.Customer
+        SET 
+            PersonID = @PersonID,
+            StoreID = @StoreID,
+            TerritoryID = @TerritoryID,
+            AccountNumber = @AccountNumber,
+            ModifiedDate = GETDATE()
+        WHERE CustomerID = @CustomerID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_DeleteCustomer_Sagastume
+```sql
+CREATE PROCEDURE usp_DeleteCustomer_Sagastume
+    @CustomerID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- Verificar si tiene órdenes
+        IF EXISTS (SELECT 1 FROM Sales.SalesOrderHeader WHERE CustomerID = @CustomerID)
+        BEGIN
+            RAISERROR('No se puede eliminar un cliente que tiene órdenes asociadas', 16, 1);
+            RETURN;
+        END
+        
+        DELETE FROM Sales.Customer
+        WHERE CustomerID = @CustomerID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+---
+
+## 📦 Production - Productos
+
+### usp_GetAllProducts_Sagastume
+```sql
+CREATE PROCEDURE usp_GetAllProducts_Sagastume
+    @TopCount INT = 100,
+    @ActiveOnly BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT TOP (@TopCount)
+        p.ProductID,
+        p.Name,
+        p.ProductNumber,
+        p.MakeFlag,
+        p.FinishedGoodsFlag,
+        p.Color,
+        p.SafetyStockLevel,
+        p.ReorderPoint,
+        p.StandardCost,
+        p.ListPrice,
+        p.Size,
+        p.Weight,
+        p.DaysToManufacture,
+        p.ProductLine,
+        p.Class,
+        p.Style,
+        p.ProductSubcategoryID,
+        ps.Name as SubcategoryName,
+        pc.Name as CategoryName,
+        p.ProductModelID,
+        pm.Name as ModelName,
+        p.SellStartDate,
+        p.SellEndDate,
+        p.DiscontinuedDate,
+        p.ModifiedDate
+    FROM Production.Product p
+    LEFT JOIN Production.ProductSubcategory ps ON p.ProductSubcategoryID = ps.ProductSubcategoryID
+    LEFT JOIN Production.ProductCategory pc ON ps.ProductCategoryID = pc.ProductCategoryID
+    LEFT JOIN Production.ProductModel pm ON p.ProductModelID = pm.ProductModelID
+    WHERE (@ActiveOnly = 0 OR p.SellEndDate IS NULL)
+    ORDER BY p.Name;
+END
+```
+
+### usp_GetProductById_Sagastume
+```sql
+CREATE PROCEDURE usp_GetProductById_Sagastume
+    @ProductID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        p.ProductID,
+        p.Name,
+        p.ProductNumber,
+        p.MakeFlag,
+        p.FinishedGoodsFlag,
+        p.Color,
+        p.SafetyStockLevel,
+        p.ReorderPoint,
+        p.StandardCost,
+        p.ListPrice,
+        p.Size,
+        p.Weight,
+        p.DaysToManufacture,
+        p.ProductLine,
+        p.Class,
+        p.Style,
+        p.ProductSubcategoryID,
+        ps.Name as SubcategoryName,
+        pc.Name as CategoryName,
+        p.ProductModelID,
+        pm.Name as ModelName,
+        p.SellStartDate,
+        p.SellEndDate,
+        p.DiscontinuedDate,
+        p.ModifiedDate
+    FROM Production.Product p
+    LEFT JOIN Production.ProductSubcategory ps ON p.ProductSubcategoryID = ps.ProductSubcategoryID
+    LEFT JOIN Production.ProductCategory pc ON ps.ProductCategoryID = pc.ProductCategoryID
+    LEFT JOIN Production.ProductModel pm ON p.ProductModelID = pm.ProductModelID
+    WHERE p.ProductID = @ProductID;
+END
+```
+
+### usp_GetProductsByCategory_Sagastume
+```sql
+CREATE PROCEDURE usp_GetProductsByCategory_Sagastume
+    @CategoryID INT,
+    @ActiveOnly BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        p.ProductID,
+        p.Name,
+        p.ProductNumber,
+        p.ListPrice,
+        p.Color,
+        p.Size,
+        p.Weight,
+        ps.Name as SubcategoryName,
+        pc.Name as CategoryName,
+        p.SellStartDate,
+        p.SellEndDate
+    FROM Production.Product p
+    INNER JOIN Production.ProductSubcategory ps ON p.ProductSubcategoryID = ps.ProductSubcategoryID
+    INNER JOIN Production.ProductCategory pc ON ps.ProductCategoryID = pc.ProductCategoryID
+    WHERE pc.ProductCategoryID = @CategoryID
+      AND (@ActiveOnly = 0 OR p.SellEndDate IS NULL)
+    ORDER BY p.Name;
+END
+```
+
+### usp_GetProductInventory_Sagastume
+```sql
+CREATE PROCEDURE usp_GetProductInventory_Sagastume
+    @ProductID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        pi.ProductID,
+        p.Name as ProductName,
+        p.ProductNumber,
+        pi.LocationID,
+        l.Name as LocationName,
+        pi.Shelf,
+        pi.Bin,
+        pi.Quantity,
+        pi.ModifiedDate
+    FROM Production.ProductInventory pi
+    INNER JOIN Production.Product p ON pi.ProductID = p.ProductID
+    INNER JOIN Production.Location l ON pi.LocationID = l.LocationID
+    WHERE pi.ProductID = @ProductID;
+END
+```
+
+### usp_CreateProduct_Sagastume
+```sql
+CREATE PROCEDURE usp_CreateProduct_Sagastume
+    @Name NVARCHAR(50),
+    @ProductNumber NVARCHAR(25),
+    @MakeFlag BIT = 1,
+    @FinishedGoodsFlag BIT = 1,
+    @Color NVARCHAR(15) = NULL,
+    @SafetyStockLevel SMALLINT = 1,
+    @ReorderPoint SMALLINT = 1,
+    @StandardCost MONEY = 0,
+    @ListPrice MONEY = 0,
+    @Size NVARCHAR(5) = NULL,
+    @Weight DECIMAL(8,2) = NULL,
+    @DaysToManufacture INT = 0,
+    @ProductLine NCHAR(2) = NULL,
+    @Class NCHAR(2) = NULL,
+    @Style NCHAR(2) = NULL,
+    @ProductSubcategoryID INT = NULL,
+    @ProductModelID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        INSERT INTO Production.Product (
+            Name,
+            ProductNumber,
+            MakeFlag,
+            FinishedGoodsFlag,
+            Color,
+            SafetyStockLevel,
+            ReorderPoint,
+            StandardCost,
+            ListPrice,
+            Size,
+            Weight,
+            DaysToManufacture,
+            ProductLine,
+            Class,
+            Style,
+            ProductSubcategoryID,
+            ProductModelID,
+            SellStartDate,
+            rowguid,
+            ModifiedDate
+        )
+        VALUES (
+            @Name,
+            @ProductNumber,
+            @MakeFlag,
+            @FinishedGoodsFlag,
+            @Color,
+            @SafetyStockLevel,
+            @ReorderPoint,
+            @StandardCost,
+            @ListPrice,
+            @Size,
+            @Weight,
+            @DaysToManufacture,
+            @ProductLine,
+            @Class,
+            @Style,
+            @ProductSubcategoryID,
+            @ProductModelID,
+            GETDATE(),
+            NEWID(),
+            GETDATE()
+        );
+        
+        SELECT SCOPE_IDENTITY() as ProductID;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_UpdateProduct_Sagastume
+```sql
+CREATE PROCEDURE usp_UpdateProduct_Sagastume
+    @ProductID INT,
+    @Name NVARCHAR(50),
+    @ProductNumber NVARCHAR(25),
+    @MakeFlag BIT,
+    @FinishedGoodsFlag BIT,
+    @Color NVARCHAR(15) = NULL,
+    @SafetyStockLevel SMALLINT,
+    @ReorderPoint SMALLINT,
+    @StandardCost MONEY,
+    @ListPrice MONEY,
+    @Size NVARCHAR(5) = NULL,
+    @Weight DECIMAL(8,2) = NULL,
+    @DaysToManufacture INT,
+    @ProductLine NCHAR(2) = NULL,
+    @Class NCHAR(2) = NULL,
+    @Style NCHAR(2) = NULL,
+    @ProductSubcategoryID INT = NULL,
+    @ProductModelID INT = NULL,
+    @SellStartDate DATETIME = NULL,
+    @SellEndDate DATETIME = NULL,
+    @DiscontinuedDate DATETIME = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        UPDATE Production.Product
+        SET 
+            Name = @Name,
+            ProductNumber = @ProductNumber,
+            MakeFlag = @MakeFlag,
+            FinishedGoodsFlag = @FinishedGoodsFlag,
+            Color = @Color,
+            SafetyStockLevel = @SafetyStockLevel,
+            ReorderPoint = @ReorderPoint,
+            StandardCost = @StandardCost,
+            ListPrice = @ListPrice,
+            Size = @Size,
+            Weight = @Weight,
+            DaysToManufacture = @DaysToManufacture,
+            ProductLine = @ProductLine,
+            Class = @Class,
+            Style = @Style,
+            ProductSubcategoryID = @ProductSubcategoryID,
+            ProductModelID = @ProductModelID,
+            SellStartDate = @SellStartDate,
+            SellEndDate = @SellEndDate,
+            DiscontinuedDate = @DiscontinuedDate,
+            ModifiedDate = GETDATE()
+        WHERE ProductID = @ProductID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_DeleteProduct_Sagastume
+```sql
+CREATE PROCEDURE usp_DeleteProduct_Sagastume
+    @ProductID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- Verificar si el producto tiene órdenes o inventario
+        IF EXISTS (SELECT 1 FROM Sales.SalesOrderDetail WHERE ProductID = @ProductID)
+           OR EXISTS (SELECT 1 FROM Production.ProductInventory WHERE ProductID = @ProductID)
+        BEGIN
+            -- Marcar como descontinuado en lugar de eliminar
+            UPDATE Production.Product
+            SET 
+                SellEndDate = GETDATE(),
+                DiscontinuedDate = GETDATE(),
+                ModifiedDate = GETDATE()
+            WHERE ProductID = @ProductID;
+            
+            SELECT @@ROWCOUNT as RowsAffected, 'DISCONTINUED' as Action;
+        END
+        ELSE
+        BEGIN
+            DELETE FROM Production.Product
+            WHERE ProductID = @ProductID;
+            
+            SELECT @@ROWCOUNT as RowsAffected, 'DELETED' as Action;
+        END
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_UpdateProductInventory_Sagastume
+```sql
+CREATE PROCEDURE usp_UpdateProductInventory_Sagastume
+    @ProductID INT,
+    @LocationID SMALLINT,
+    @Shelf NVARCHAR(10) = NULL,
+    @Bin TINYINT = NULL,
+    @Quantity SMALLINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        IF EXISTS (SELECT 1 FROM Production.ProductInventory WHERE ProductID = @ProductID AND LocationID = @LocationID)
+        BEGIN
+            -- Actualizar inventario existente
+            UPDATE Production.ProductInventory
+            SET 
+                Shelf = @Shelf,
+                Bin = @Bin,
+                Quantity = @Quantity,
+                ModifiedDate = GETDATE()
+            WHERE ProductID = @ProductID AND LocationID = @LocationID;
+            
+            SELECT @@ROWCOUNT as RowsAffected, 'UPDATED' as Action;
+        END
+        ELSE
+        BEGIN
+            -- Crear nuevo registro de inventario
+            INSERT INTO Production.ProductInventory (
+                ProductID,
+                LocationID,
+                Shelf,
+                Bin,
+                Quantity,
+                rowguid,
+                ModifiedDate
+            )
+            VALUES (
+                @ProductID,
+                @LocationID,
+                @Shelf,
+                @Bin,
+                @Quantity,
+                NEWID(),
+                GETDATE()
+            );
+            
+            SELECT @@ROWCOUNT as RowsAffected, 'CREATED' as Action;
+        END
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_ProductosConBajoInventario_Sagastume
+```sql
+CREATE PROCEDURE [dbo].[usp_ProductosConBajoInventario_Sagastume]
+    @UmbralInventario INT = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        p.ProductID,
+        p.Name AS NombreProducto,
+        p.ProductNumber,
+        pc.Name AS Categoria,
+        ps.Name AS Subcategoria,
+        p.SafetyStockLevel AS NivelStockSeguridad,
+        p.ReorderPoint AS PuntoReorden,
+        SUM(pi.Quantity) AS CantidadTotalStock,
+        p.StandardCost AS CostoEstandar,
+        p.ListPrice AS PrecioLista,
+        p.ModifiedDate AS FechaModificacion
+    FROM Production.Product p
+    LEFT JOIN Production.ProductInventory pi ON p.ProductID = pi.ProductID
+    LEFT JOIN Production.ProductSubcategory ps ON p.ProductSubcategoryID = ps.ProductSubcategoryID
+    LEFT JOIN Production.ProductCategory pc ON ps.ProductCategoryID = pc.ProductCategoryID
+    WHERE p.SellEndDate IS NULL -- Solo productos activos
+      AND p.FinishedGoodsFlag = 1 -- Solo productos terminados
+    GROUP BY 
+        p.ProductID,
+        p.Name,
+        p.ProductNumber,
+        pc.Name,
+        ps.Name,
+        p.SafetyStockLevel,
+        p.ReorderPoint,
+        p.StandardCost,
+        p.ListPrice,
+        p.ModifiedDate
+    HAVING SUM(ISNULL(pi.Quantity, 0)) <= @UmbralInventario
+    ORDER BY SUM(ISNULL(pi.Quantity, 0)) ASC;
+END;
+```
+
+---
+
+## 🔧 Órdenes de Trabajo
+
+### usp_GetAllWorkOrders_Sagastume
+```sql
+CREATE PROCEDURE usp_GetAllWorkOrders_Sagastume
+    @TopCount INT = 100
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT TOP (@TopCount)
+        wo.WorkOrderID,
+        wo.ProductID,
+        p.Name as ProductName,
+        p.ProductNumber,
+        wo.OrderQty,
+        wo.StockedQty,
+        wo.ScrappedQty,
+        wo.StartDate,
+        wo.EndDate,
+        wo.DueDate,
+        wo.ScrapReasonID,
+        sr.Name as ScrapReasonName,
+        wo.ModifiedDate
+    FROM Production.WorkOrder wo
+    INNER JOIN Production.Product p ON wo.ProductID = p.ProductID
+    LEFT JOIN Production.ScrapReason sr ON wo.ScrapReasonID = sr.ScrapReasonID
+    ORDER BY wo.StartDate DESC;
+END
+```
+
+### usp_GetWorkOrderById_Sagastume
+```sql
+CREATE PROCEDURE usp_GetWorkOrderById_Sagastume
+    @WorkOrderID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        wo.WorkOrderID,
+        wo.ProductID,
+        p.Name as ProductName,
+        p.ProductNumber,
+        wo.OrderQty,
+        wo.StockedQty,
+        wo.ScrappedQty,
+        wo.StartDate,
+        wo.EndDate,
+        wo.DueDate,
+        wo.ScrapReasonID,
+        sr.Name as ScrapReasonName,
+        wo.ModifiedDate
+    FROM Production.WorkOrder wo
+    INNER JOIN Production.Product p ON wo.ProductID = p.ProductID
+    LEFT JOIN Production.ScrapReason sr ON wo.ScrapReasonID = sr.ScrapReasonID
+    WHERE wo.WorkOrderID = @WorkOrderID;
+END
+```
+
+### usp_GetWorkOrdersByProduct_Sagastume
+```sql
+CREATE PROCEDURE usp_GetWorkOrdersByProduct_Sagastume
+    @ProductID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        wo.WorkOrderID,
+        wo.OrderQty,
+        wo.StockedQty,
+        wo.ScrappedQty,
+        wo.StartDate,
+        wo.EndDate,
+        wo.DueDate,
+        wo.ScrapReasonID,
+        sr.Name as ScrapReasonName,
+        wo.ModifiedDate
+    FROM Production.WorkOrder wo
+    LEFT JOIN Production.ScrapReason sr ON wo.ScrapReasonID = sr.ScrapReasonID
+    WHERE wo.ProductID = @ProductID
+    ORDER BY wo.StartDate DESC;
+END
+```
+
+### usp_CreateWorkOrder_Sagastume
+```sql
+CREATE PROCEDURE usp_CreateWorkOrder_Sagastume
+    @ProductID INT,
+    @OrderQty INT,
+    @StartDate DATETIME = NULL,
+    @EndDate DATETIME = NULL,
+    @DueDate DATETIME,
+    @ScrapReasonID SMALLINT = NULL,
+    @ScrappedQty SMALLINT = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        SET @StartDate = ISNULL(@StartDate, GETDATE());
+        
+        INSERT INTO Production.WorkOrder (
+            ProductID,
+            OrderQty,
+            StockedQty,
+            ScrappedQty,
+            StartDate,
+            EndDate,
+            DueDate,
+            ScrapReasonID,
+            ModifiedDate
+        )
+        VALUES (
+            @ProductID,
+            @OrderQty,
+            @OrderQty - @ScrappedQty,
+            @ScrappedQty,
+            @StartDate,
+            @EndDate,
+            @DueDate,
+            @ScrapReasonID,
+            GETDATE()
+        );
+        
+        SELECT SCOPE_IDENTITY() as WorkOrderID;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_UpdateWorkOrder_Sagastume
+```sql
+CREATE PROCEDURE usp_UpdateWorkOrder_Sagastume
+    @WorkOrderID INT,
+    @ProductID INT,
+    @OrderQty INT,
+    @ScrappedQty SMALLINT,
+    @StartDate DATETIME,
+    @EndDate DATETIME = NULL,
+    @DueDate DATETIME,
+    @ScrapReasonID SMALLINT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        UPDATE Production.WorkOrder
+        SET 
+            ProductID = @ProductID,
+            OrderQty = @OrderQty,
+            StockedQty = @OrderQty - @ScrappedQty,
+            ScrappedQty = @ScrappedQty,
+            StartDate = @StartDate,
+            EndDate = @EndDate,
+            DueDate = @DueDate,
+            ScrapReasonID = @ScrapReasonID,
+            ModifiedDate = GETDATE()
+        WHERE WorkOrderID = @WorkOrderID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+### usp_DeleteWorkOrder_Sagastume
+```sql
+CREATE PROCEDURE usp_DeleteWorkOrder_Sagastume
+    @WorkOrderID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        DELETE FROM Production.WorkOrder
+        WHERE WorkOrderID = @WorkOrderID;
+        
+        SELECT @@ROWCOUNT as RowsAffected;
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+```
+
+---
+
+## 📝 Notas de Implementación
+
+### Convenciones Utilizadas
+- **Sufijo**: Todos los stored procedures tienen el sufijo `_Sagastume`
+- **Parámetros**: Se utilizan parámetros tipados apropiados
+- **Manejo de Errores**: Se implementa manejo de errores con `TRY-CATCH`
+- **Transacciones**: Operaciones críticas usan transacciones implícitas
+- **Soft Delete**: Se prefiere marcar registros como inactivos en lugar de eliminar físicamente
+
+### Stored Procedures Existentes Incluidos
+- **usp_EmpleadosConMasTiempoEnDepartamento_Sagastume**: Reporte completo de empleados con más tiempo en departamento
+- **usp_Top10ProductosMasVendidos_Sagastume**: Reporte de los 10 productos más vendidos con estadísticas detalladas
+- **usp_ProductosConBajoInventario_Sagastume**: Reporte de productos con inventario bajo el umbral especificado
+
+### Consideraciones de Seguridad
+- Todos los parámetros están tipados para prevenir inyección SQL
+- Se validan condiciones de negocio antes de operaciones destructivas
+- Los stored procedures incluyen validaciones de integridad referencial
+
+### Performance
+- Los SELECT incluyen solo las columnas necesarias
+- Se implementan índices implícitos a través de JOIN apropiados
+- Los TOP clauses limitan el número de registros devueltos por defecto
+
+---
+
+*Documento generado automáticamente para el proyecto AdventureWorks Enterprise API*
+*Fecha: 2024-12-17*

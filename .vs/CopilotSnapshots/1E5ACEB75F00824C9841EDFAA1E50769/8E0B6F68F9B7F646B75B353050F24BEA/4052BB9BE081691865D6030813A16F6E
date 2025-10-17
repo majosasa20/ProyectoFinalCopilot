@@ -1,0 +1,172 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using AdventureWorks.Enterprise.Api.Models.Sales;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controller for managing customers
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class CustomersController : ControllerBase
+    {
+        private readonly ILogger<CustomersController> _logger;
+        private static List<CustomerDto> _customers = new();
+
+        public CustomersController(ILogger<CustomersController> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Get all customers
+        /// </summary>
+        /// <returns>List of customers</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<CustomerDto>>> GetCustomers()
+        {
+            try
+            {
+                _logger.LogInformation("Getting all customers at {Timestamp}", DateTime.UtcNow);
+                return Ok(_customers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting customers");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Get customer by ID
+        /// </summary>
+        /// <param name="id">Customer ID</param>
+        /// <returns>Customer details</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<CustomerDto>> GetCustomer(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Getting customer {CustomerId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                var customer = _customers.FirstOrDefault(c => c.CustomerID == id);
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer {CustomerId} not found", id);
+                    return NotFound($"Customer with ID {id} not found");
+                }
+
+                return Ok(customer);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting customer {CustomerId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Create a new customer
+        /// </summary>
+        /// <param name="customer">Customer data</param>
+        /// <returns>Created customer</returns>
+        [HttpPost]
+        public async Task<ActionResult<CustomerDto>> CreateCustomer([FromBody] CustomerDto customer)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for creating customer");
+                    return BadRequest(ModelState);
+                }
+
+                customer.CustomerID = _customers.Count > 0 ? _customers.Max(c => c.CustomerID) + 1 : 1;
+                customer.AccountNumber = $"AW{customer.CustomerID:00000000}";
+                customer.RowGuid = Guid.NewGuid();
+                customer.ModifiedDate = DateTime.UtcNow;
+
+                _customers.Add(customer);
+                
+                _logger.LogInformation("Created customer {CustomerId} at {Timestamp}", customer.CustomerID, DateTime.UtcNow);
+                
+                return CreatedAtAction(nameof(GetCustomer), new { id = customer.CustomerID }, customer);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while creating customer");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Update an existing customer
+        /// </summary>
+        /// <param name="id">Customer ID</param>
+        /// <param name="customer">Updated customer data</param>
+        /// <returns>No content if successful</returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateCustomer(int id, [FromBody] CustomerDto customer)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for updating customer {CustomerId}", id);
+                    return BadRequest(ModelState);
+                }
+
+                var existingCustomer = _customers.FirstOrDefault(c => c.CustomerID == id);
+                if (existingCustomer == null)
+                {
+                    _logger.LogWarning("Customer {CustomerId} not found for update", id);
+                    return NotFound($"Customer with ID {id} not found");
+                }
+
+                existingCustomer.PersonID = customer.PersonID;
+                existingCustomer.StoreID = customer.StoreID;
+                existingCustomer.TerritoryID = customer.TerritoryID;
+                existingCustomer.ModifiedDate = DateTime.UtcNow;
+
+                _logger.LogInformation("Updated customer {CustomerId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating customer {CustomerId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Delete a customer
+        /// </summary>
+        /// <param name="id">Customer ID</param>
+        /// <returns>No content if successful</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCustomer(int id)
+        {
+            try
+            {
+                var customer = _customers.FirstOrDefault(c => c.CustomerID == id);
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer {CustomerId} not found for deletion", id);
+                    return NotFound($"Customer with ID {id} not found");
+                }
+
+                _customers.Remove(customer);
+                
+                _logger.LogInformation("Deleted customer {CustomerId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting customer {CustomerId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+    }
+}

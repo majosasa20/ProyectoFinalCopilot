@@ -1,0 +1,540 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using AdventureWorks.Enterprise.Api.Controllers;
+using AdventureWorks.Enterprise.Api.Data;
+using AdventureWorks.Enterprise.Api.Tests.Infrastructure;
+using AdventureWorks.Enterprise.Api.Models.Production;
+
+namespace AdventureWorks.Enterprise.Api.Tests.Controllers
+{
+    /// <summary>
+    /// Tests para el controlador de Productos
+    /// </summary>
+    public class ProductosControllerTests : BaseControllerTest
+    {
+        private readonly ProductosController _controller;
+        private readonly Mock<ILogger<ProductosController>> _mockLogger;
+
+        public ProductosControllerTests()
+        {
+            _mockLogger = CreateMockLogger<ProductosController>();
+            _controller = new ProductosController(Context, _mockLogger.Object);
+            SeedTestData();
+        }
+
+        #region ObtenerProductos Tests
+
+        [Fact]
+        public async Task ObtenerProductos_DeberiaRetornarListaDeProductos_CuandoExistenProductos()
+        {
+            // Act
+            var result = await _controller.ObtenerProductos();
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var productos = okResult?.Value as List<Product>;
+            productos.Should().NotBeNull();
+            productos.Should().HaveCount(2);
+            productos?.All(p => p.SellEndDate == null).Should().BeTrue(); // Solo productos activos
+        }
+
+        [Fact]
+        public async Task ObtenerProductos_DeberiaRetornarError500_CuandoOcurreExcepcion()
+        {
+            // Arrange
+            var mockLogger = CreateMockLogger<ProductosController>();
+            var controller = new ProductosController(null!, mockLogger.Object); // Forzar excepción
+
+            // Act
+            var result = await controller.ObtenerProductos();
+
+            // Assert
+            result.Result.Should().BeOfType<ObjectResult>();
+            var objectResult = result.Result as ObjectResult;
+            objectResult?.StatusCode.Should().Be(500);
+        }
+
+        #endregion
+
+        #region ObtenerProducto Tests
+
+        [Fact]
+        public async Task ObtenerProducto_DeberiaRetornarProducto_CuandoExisteProducto()
+        {
+            // Arrange
+            var productoId = 1;
+
+            // Act
+            var result = await _controller.ObtenerProducto(productoId);
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var producto = okResult?.Value as Product;
+            producto.Should().NotBeNull();
+            producto?.ProductID.Should().Be(productoId);
+        }
+
+        [Fact]
+        public async Task ObtenerProducto_DeberiaRetornarNotFound_CuandoNoExisteProducto()
+        {
+            // Arrange
+            var productoId = 999;
+
+            // Act
+            var result = await _controller.ObtenerProducto(productoId);
+
+            // Assert
+            result.Result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        #endregion
+
+        #region ObtenerInventarioProducto Tests
+
+        [Fact]
+        public async Task ObtenerInventarioProducto_DeberiaRetornarInventario_CuandoExisteProducto()
+        {
+            // Arrange
+            var productoId = 1;
+            
+            // Agregar inventario de prueba
+            Context.ProductInventories.Add(new ProductInventory
+            {
+                ProductID = productoId,
+                LocationID = 1,
+                Shelf = "A",
+                Bin = 1,
+                Quantity = 100,
+                RowGuid = Guid.NewGuid(),
+                ModifiedDate = DateTime.UtcNow
+            });
+            await Context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.ObtenerInventarioProducto(productoId);
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var inventario = okResult?.Value as List<ProductInventory>;
+            inventario.Should().NotBeNull();
+            inventario.Should().HaveCount(1);
+            inventario?.First().ProductID.Should().Be(productoId);
+        }
+
+        [Fact]
+        public async Task ObtenerInventarioProducto_DeberiaRetornarListaVacia_CuandoProductoSinInventario()
+        {
+            // Arrange
+            var productoId = 2; // Producto sin inventario
+
+            // Act
+            var result = await _controller.ObtenerInventarioProducto(productoId);
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var inventario = okResult?.Value as List<ProductInventory>;
+            inventario.Should().NotBeNull();
+            inventario.Should().BeEmpty();
+        }
+
+        #endregion
+
+        #region CrearProducto Tests
+
+        [Fact]
+        public async Task CrearProducto_DeberiaCrearProducto_CuandoDatosValidos()
+        {
+            // Arrange
+            var nuevoProducto = new Product
+            {
+                Name = "Test Product 3",
+                ProductNumber = "TEST-003",
+                MakeFlag = true,
+                FinishedGoodsFlag = true,
+                Color = "Green",
+                SafetyStockLevel = 25,
+                ReorderPoint = 10,
+                StandardCost = 50.00m,
+                ListPrice = 80.00m,
+                DaysToManufacture = 2,
+                SellStartDate = DateTime.UtcNow
+            };
+
+            // Act
+            var result = await _controller.CrearProducto(nuevoProducto);
+
+            // Assert
+            result.Result.Should().BeOfType<CreatedAtActionResult>();
+            var createdResult = result.Result as CreatedAtActionResult;
+            var productoCreado = createdResult?.Value as Product;
+            productoCreado.Should().NotBeNull();
+            productoCreado?.Name.Should().Be(nuevoProducto.Name);
+            productoCreado?.RowGuid.Should().NotBe(Guid.Empty);
+        }
+
+        [Fact]
+        public async Task CrearProducto_DeberiaRetornarBadRequest_CuandoModeloInvalido()
+        {
+            // Arrange
+            var productoInvalido = new Product(); // Modelo inválido
+            _controller.ModelState.AddModelError("Name", "Campo requerido");
+
+            // Act
+            var result = await _controller.CrearProducto(productoInvalido);
+
+            // Assert
+            result.Result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        [Fact]
+        public async Task CrearProducto_DeberiaRetornarBadRequest_CuandoNumeroProductoExiste()
+        {
+            // Arrange
+            var nuevoProducto = new Product
+            {
+                Name = "Test Product Duplicate",
+                ProductNumber = "TEST-001", // Número ya existente
+                MakeFlag = true,
+                FinishedGoodsFlag = true,
+                SafetyStockLevel = 25,
+                ReorderPoint = 10,
+                StandardCost = 50.00m,
+                ListPrice = 80.00m,
+                DaysToManufacture = 2,
+                SellStartDate = DateTime.UtcNow
+            };
+
+            // Act
+            var result = await _controller.CrearProducto(nuevoProducto);
+
+            // Assert
+            result.Result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        #endregion
+
+        #region ActualizarProducto Tests
+
+        [Fact]
+        public async Task ActualizarProducto_DeberiaActualizarProducto_CuandoDatosValidos()
+        {
+            // Arrange
+            var productoId = 1;
+            var productoActualizado = new Product
+            {
+                ProductID = productoId,
+                Name = "Test Product 1 Updated",
+                ProductNumber = "TEST-001",
+                MakeFlag = true,
+                FinishedGoodsFlag = true,
+                Color = "Red",
+                SafetyStockLevel = 60,
+                ReorderPoint = 30,
+                StandardCost = 110.00m,
+                ListPrice = 165.00m,
+                DaysToManufacture = 6,
+                SellStartDate = DateTime.UtcNow.AddYears(-1)
+            };
+
+            // Act
+            var result = await _controller.ActualizarProducto(productoId, productoActualizado);
+
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+            
+            // Verificar que se actualizó en la base de datos
+            var productoEnDb = await Context.Products.FindAsync(productoId);
+            productoEnDb?.Name.Should().Be("Test Product 1 Updated");
+            productoEnDb?.SafetyStockLevel.Should().Be(60);
+        }
+
+        [Fact]
+        public async Task ActualizarProducto_DeberiaRetornarBadRequest_CuandoIdNoCoincide()
+        {
+            // Arrange
+            var productoId = 1;
+            var productoActualizado = new Product { ProductID = 2 };
+
+            // Act
+            var result = await _controller.ActualizarProducto(productoId, productoActualizado);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        [Fact]
+        public async Task ActualizarProducto_DeberiaRetornarNotFound_CuandoProductoNoExiste()
+        {
+            // Arrange
+            var productoId = 999;
+            var productoActualizado = new Product { ProductID = productoId };
+
+            // Act
+            var result = await _controller.ActualizarProducto(productoId, productoActualizado);
+
+            // Assert
+            result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        #endregion
+
+        #region EliminarProducto Tests
+
+        [Fact]
+        public async Task EliminarProducto_DeberiaMarcarComoDescontinuado_CuandoProductoTieneOrdenes()
+        {
+            // Arrange
+            var productoId = 1;
+            
+            // Agregar detalle de orden para simular que tiene órdenes
+            Context.SalesOrderDetails.Add(new SalesOrderDetail
+            {
+                SalesOrderID = 1,
+                SalesOrderDetailID = 2,
+                ProductID = productoId,
+                OrderQty = 1,
+                SpecialOfferID = 1,
+                UnitPrice = 150.00m,
+                UnitPriceDiscount = 0.00m,
+                LineTotal = 150.00m,
+                RowGuid = Guid.NewGuid(),
+                ModifiedDate = DateTime.UtcNow
+            });
+            await Context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.EliminarProducto(productoId);
+
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+            
+            // Verificar que se marcó como descontinuado
+            var productoEnDb = await Context.Products.FindAsync(productoId);
+            productoEnDb?.SellEndDate.Should().NotBeNull();
+            productoEnDb?.DiscontinuedDate.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task EliminarProducto_DeberiaEliminarProducto_CuandoProductoSinOrdenes()
+        {
+            // Arrange
+            var productoId = 2; // Producto sin órdenes ni inventario
+
+            // Act
+            var result = await _controller.EliminarProducto(productoId);
+
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+            
+            // Verificar que se eliminó de la base de datos
+            var productoEnDb = await Context.Products.FindAsync(productoId);
+            productoEnDb.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task EliminarProducto_DeberiaRetornarNotFound_CuandoProductoNoExiste()
+        {
+            // Arrange
+            var productoId = 999;
+
+            // Act
+            var result = await _controller.EliminarProducto(productoId);
+
+            // Assert
+            result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        #endregion
+
+        #region ActualizarInventario Tests
+
+        [Fact]
+        public async Task ActualizarInventario_DeberiaCrearInventario_CuandoNoExisteInventario()
+        {
+            // Arrange
+            var productoId = 1;
+            var nuevoInventario = new ProductInventory
+            {
+                ProductID = productoId,
+                LocationID = 1,
+                Shelf = "B",
+                Bin = 2,
+                Quantity = 150
+            };
+
+            // Act
+            var result = await _controller.ActualizarInventario(productoId, nuevoInventario);
+
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+            
+            // Verificar que se creó en la base de datos
+            var inventarioEnDb = Context.ProductInventories
+                .FirstOrDefault(i => i.ProductID == productoId && i.LocationID == 1);
+            inventarioEnDb.Should().NotBeNull();
+            inventarioEnDb?.Quantity.Should().Be(150);
+        }
+
+        [Fact]
+        public async Task ActualizarInventario_DeberiaActualizarInventario_CuandoExisteInventario()
+        {
+            // Arrange
+            var productoId = 1;
+            var locationId = 1;
+            
+            // Crear inventario existente
+            Context.ProductInventories.Add(new ProductInventory
+            {
+                ProductID = productoId,
+                LocationID = (short)locationId,
+                Shelf = "A",
+                Bin = 1,
+                Quantity = 100,
+                RowGuid = Guid.NewGuid(),
+                ModifiedDate = DateTime.UtcNow
+            });
+            await Context.SaveChangesAsync();
+
+            var inventarioActualizado = new ProductInventory
+            {
+                ProductID = productoId,
+                LocationID = (short)locationId,
+                Shelf = "C",
+                Bin = 3,
+                Quantity = 200
+            };
+
+            // Act
+            var result = await _controller.ActualizarInventario(productoId, inventarioActualizado);
+
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+            
+            // Verificar que se actualizó en la base de datos
+            var inventarioEnDb = Context.ProductInventories
+                .FirstOrDefault(i => i.ProductID == productoId && i.LocationID == locationId);
+            inventarioEnDb?.Quantity.Should().Be(200);
+            inventarioEnDb?.Shelf.Should().Be("C");
+        }
+
+        [Fact]
+        public async Task ActualizarInventario_DeberiaRetornarBadRequest_CuandoIdProductoNoCoincide()
+        {
+            // Arrange
+            var productoId = 1;
+            var inventario = new ProductInventory { ProductID = 2 };
+
+            // Act
+            var result = await _controller.ActualizarInventario(productoId, inventario);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        #endregion
+
+        #region ObtenerProductosPorCategoria Tests
+
+        [Fact]
+        public async Task ObtenerProductosPorCategoria_DeberiaRetornarProductos_CuandoExistenProductosEnCategoria()
+        {
+            // Arrange
+            var categoriaId = 1;
+            
+            // Crear estructura de categorías y productos
+            var categoria = new ProductCategory
+            {
+                ProductCategoryID = categoriaId,
+                Name = "Test Category",
+                RowGuid = Guid.NewGuid(),
+                ModifiedDate = DateTime.UtcNow
+            };
+            
+            var subcategoria = new ProductSubcategory
+            {
+                ProductSubcategoryID = 1,
+                ProductCategoryID = categoriaId,
+                Name = "Test Subcategory",
+                RowGuid = Guid.NewGuid(),
+                ModifiedDate = DateTime.UtcNow
+            };
+
+            Context.ProductCategories.Add(categoria);
+            Context.ProductSubcategories.Add(subcategoria);
+            
+            // Actualizar producto para que tenga subcategoría
+            var producto = await Context.Products.FindAsync(1);
+            if (producto != null)
+            {
+                producto.ProductSubcategoryID = 1;
+            }
+            
+            await Context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.ObtenerProductosPorCategoria(categoriaId);
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var productos = okResult?.Value as List<Product>;
+            productos.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task ObtenerProductosPorCategoria_DeberiaRetornarListaVacia_CuandoNoExistenProductosEnCategoria()
+        {
+            // Arrange
+            var categoriaId = 999;
+
+            // Act
+            var result = await _controller.ObtenerProductosPorCategoria(categoriaId);
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var productos = okResult?.Value as List<Product>;
+            productos.Should().NotBeNull();
+            productos.Should().BeEmpty();
+        }
+
+        #endregion
+
+        #region ObtenerReporteProductosBajoInventario Tests
+
+        [Fact]
+        public async Task ObtenerReporteProductosBajoInventario_DeberiaRetornarReporte_CuandoExistenDatos()
+        {
+            // Arrange
+            var umbralInventario = 10;
+
+            // Act
+            var result = await _controller.ObtenerReporteProductosBajoInventario(umbralInventario);
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var reporte = okResult?.Value as List<ReporteBajoInventarioDto>;
+            reporte.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task ObtenerReporteProductosBajoInventario_DeberiaUsarUmbralPorDefecto_CuandoNoSeProporcionaUmbral()
+        {
+            // Act
+            var result = await _controller.ObtenerReporteProductosBajoInventario();
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var reporte = okResult?.Value as List<ReporteBajoInventarioDto>;
+            reporte.Should().NotBeNull();
+        }
+
+        #endregion
+    }
+}

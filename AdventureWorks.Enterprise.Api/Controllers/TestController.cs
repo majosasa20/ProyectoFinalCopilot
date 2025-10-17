@@ -1,0 +1,138 @@
+using Microsoft.AspNetCore.Mvc;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controlador para testing y validación de API Key
+    /// </summary>
+    [ApiController]
+    [Route("api/test")]
+    public class TestController : ControllerBase
+    {
+        private readonly ILogger<TestController> _logger;
+        private readonly IConfiguration _configuration;
+
+        public TestController(ILogger<TestController> logger, IConfiguration configuration)
+        {
+            _logger = logger;
+            _configuration = configuration;
+        }
+
+        /// <summary>
+        /// Endpoint de prueba para validar que la API Key esté funcionando
+        /// </summary>
+        /// <returns>Mensaje de confirmación</returns>
+        [HttpGet("ping")]
+        public IActionResult Ping()
+        {
+            try
+            {
+                _logger.LogInformation("?? Ping recibido desde IP: {RemoteIpAddress}", HttpContext.Connection.RemoteIpAddress);
+                
+                // Verificar si hay API Key en headers
+                var hasApiKey = HttpContext.Request.Headers.ContainsKey("X-API-Key");
+                var apiKeyValue = HttpContext.Request.Headers["X-API-Key"].FirstOrDefault();
+                
+                _logger.LogInformation("?? API Key presente: {HasApiKey}", hasApiKey);
+                
+                return Ok(new
+                {
+                    message = "? API respondiendo correctamente",
+                    success = true,
+                    timestamp = DateTime.UtcNow,
+                    server = Environment.MachineName,
+                    version = "1.0.0",
+                    hasApiKey = hasApiKey,
+                    clientIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    requestId = HttpContext.TraceIdentifier
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error en endpoint ping");
+                return StatusCode(500, new
+                {
+                    message = "? Error interno en ping",
+                    success = false,
+                    error = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        /// <summary>
+        /// Endpoint de prueba con información del sistema
+        /// </summary>
+        /// <returns>Información del sistema</returns>
+        [HttpGet("status")]
+        public IActionResult Status()
+        {
+            try
+            {
+                _logger.LogInformation("?? Status check recibido desde IP: {RemoteIpAddress}", HttpContext.Connection.RemoteIpAddress);
+                
+                var environment = _configuration.GetValue<string>("ASPNETCORE_ENVIRONMENT") ?? "Production";
+                var apiKey = _configuration.GetValue<string>("ApiSettings:ApiKey");
+                
+                return Ok(new
+                {
+                    status = "? Operational",
+                    success = true,
+                    timestamp = DateTime.UtcNow,
+                    server = Environment.MachineName,
+                    environment = environment,
+                    uptime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+                    version = typeof(TestController).Assembly.GetName().Version?.ToString() ?? "Unknown",
+                    hasApiKeyConfigured = !string.IsNullOrEmpty(apiKey),
+                    apiKeyLength = apiKey?.Length ?? 0,
+                    requestHeaders = HttpContext.Request.Headers.Count,
+                    clientIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    requestId = HttpContext.TraceIdentifier
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error en endpoint status");
+                return StatusCode(500, new
+                {
+                    status = "? Error",
+                    success = false,
+                    error = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        /// <summary>
+        /// Endpoint de diagnóstico de conectividad (sin autenticación)
+        /// </summary>
+        /// <returns>Información básica de conectividad</returns>
+        [HttpGet("health")]
+        public IActionResult Health()
+        {
+            try
+            {
+                _logger.LogInformation("?? Health check recibido");
+                
+                return Ok(new
+                {
+                    health = "? Healthy",
+                    success = true,
+                    timestamp = DateTime.UtcNow,
+                    message = "API está respondiendo correctamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error en health check");
+                return StatusCode(500, new
+                {
+                    health = "? Unhealthy",
+                    success = false,
+                    error = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+    }
+}

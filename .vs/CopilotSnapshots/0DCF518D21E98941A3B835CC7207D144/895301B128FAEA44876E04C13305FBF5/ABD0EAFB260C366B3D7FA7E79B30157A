@@ -1,0 +1,17 @@
+﻿{
+  "ConnectionStrings": {
+    //"DefaultConnection": "Server=.;Database=AdventureWorks2014;Trusted_Connection=true;MultipleActiveResultSets=true;TrustServerCertificate=true",
+    "SDESICASQL": "Server=SDESICASQL;Database=AdventureWorksDW2014;Integrated Security=true;MultipleActiveResultSets=true;TrustServerCertificate=true"
+  },
+  "ApiSettings": {
+    "ApiKey": "CursoCopilot2025"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore.Database.Command": "Information"
+    }
+  },
+  "AllowedHosts": "*"
+}

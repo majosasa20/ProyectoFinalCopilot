@@ -1,0 +1,424 @@
+﻿@page "/sales/reports/top10-products"
+@using AdventureWorks.Enterprise.WebApp.Models.Sales
+@using AdventureWorks.Enterprise.WebApp.Services
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Components.Web
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Top 10 Productos - Portal Ventas</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/sales/orders">Ventas</a>
+                    </li>
+                    <li class="breadcrumb-item active">Top 10 Productos</li>
+                </ol>
+            </nav>
+            <h1 class="h2">
+                <i class="fas fa-medal text-warning"></i>
+                Top 10 Productos Más Vendidos
+            </h1>
+            <p class="text-muted">Ranking de productos por cantidad vendida y valor de ventas</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="GenerarReporte">
+                <i class="fas fa-sync-alt"></i> Actualizar Reporte
+            </button>
+            <button class="btn btn-outline-secondary ms-2" @onclick="Regresar">
+                <i class="fas fa-arrow-left"></i> Regresar
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center p-4">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Generando reporte...</span>
+            </div>
+            <p class="mt-2">Consultando datos de ventas...</p>
+        </div>
+    }
+    else if (reporte?.Any() == true)
+    {
+        <!-- Métricas Generales -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h3>@reporte.Sum(r => r.CantidadTotalVendida)</h3>
+                        <p class="mb-0">Unidades Vendidas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h3>@reporte.Sum(r => r.VentasTotales).ToString("C")</h3>
+                        <p class="mb-0">Ventas Totales</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h3>@reporte.Sum(r => r.NumeroOrdenes)</h3>
+                        <p class="mb-0">Órdenes Totales</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h3>@reporte.Average(r => r.PrecioPromedioVenta).ToString("C")</h3>
+                        <p class="mb-0">Precio Promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Podio de los Top 3 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-trophy"></i> Podio de Ganadores
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            @if (reporte.Count >= 2)
+                            {
+                                <!-- Segundo Lugar -->
+                                <div class="col-md-4 order-md-1">
+                                    <div class="podium-item silver">
+                                        <i class="fas fa-medal text-secondary fa-3x mb-2"></i>
+                                        <h4>2° Lugar</h4>
+                                        <h5 class="text-primary">@reporte[1].NombreProducto</h5>
+                                        <p class="text-muted">@reporte[1].NumeroProducto</p>
+                                        <div class="mt-2">
+                                            <span class="badge bg-secondary fs-6">@reporte[1].CantidadTotalVendida unidades</span>
+                                            <br>
+                                            <span class="text-success fw-bold">@reporte[1].VentasTotales.ToString("C")</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (reporte.Count >= 1)
+                            {
+                                <!-- Primer Lugar -->
+                                <div class="col-md-4 order-md-2">
+                                    <div class="podium-item gold">
+                                        <i class="fas fa-crown text-warning fa-4x mb-2"></i>
+                                        <h3>🏆 1° Lugar</h3>
+                                        <h4 class="text-warning fw-bold">@reporte[0].NombreProducto</h4>
+                                        <p class="text-muted">@reporte[0].NumeroProducto</p>
+                                        <div class="mt-3">
+                                            <span class="badge bg-warning fs-5">@reporte[0].CantidadTotalVendida unidades</span>
+                                            <br>
+                                            <span class="text-success fw-bold h5">@reporte[0].VentasTotales.ToString("C")</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (reporte.Count >= 3)
+                            {
+                                <!-- Tercer Lugar -->
+                                <div class="col-md-4 order-md-3">
+                                    <div class="podium-item bronze">
+                                        <i class="fas fa-medal text-warning fa-3x mb-2"></i>
+                                        <h4>3° Lugar</h4>
+                                        <h5 class="text-primary">@reporte[2].NombreProducto</h5>
+                                        <p class="text-muted">@reporte[2].NumeroProducto</p>
+                                        <div class="mt-2">
+                                            <span class="badge bg-warning fs-6">@reporte[2].CantidadTotalVendida unidades</span>
+                                            <br>
+                                            <span class="text-success fw-bold">@reporte[2].VentasTotales.ToString("C")</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla Completa -->
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list-ol"></i>
+                            Ranking Completo - Top 10 Productos
+                        </h5>
+                        <small>Ordenados por cantidad total vendida</small>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-light btn-sm" @onclick="ExportarReporte">
+                            <i class="fas fa-download"></i> Exportar
+                        </button>
+                        <button class="btn btn-outline-light btn-sm ms-2" @onclick="ImprimirReporte">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Posición</th>
+                                <th>Producto</th>
+                                <th>Categoría</th>
+                                <th>Unidades Vendidas</th>
+                                <th>Ventas Totales</th>
+                                <th>Precio Promedio</th>
+                                <th>Precio Lista</th>
+                                <th>Órdenes</th>
+                                <th>Rendimiento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < reporte.Count; i++)
+                            {
+                                var producto = reporte[i];
+                                var posicion = i + 1;
+                                <tr class="@GetRowClass(posicion)">
+                                    <td class="text-center">
+                                        @if (posicion <= 3)
+                                        {
+                                            <span class="badge @GetPositionBadgeClass(posicion) fs-5">
+                                                @GetPositionIcon(posicion) @posicion
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-dark fs-6"># @posicion</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <strong class="text-primary">@producto.NombreProducto</strong>
+                                        <br><small class="text-muted">@producto.NumeroProducto</small>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(producto.Categoria))
+                                        {
+                                            <span class="badge bg-light text-dark">@producto.Categoria</span>
+                                            @if (!string.IsNullOrEmpty(producto.Subcategoria))
+                                            {
+                                                <br><small class="text-muted">@producto.Subcategoria</small>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Sin categoría</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary fs-6">
+                                            @producto.CantidadTotalVendida.ToString("N0")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success h6">@producto.VentasTotales.ToString("C")</strong>
+                                    </td>
+                                    <td>
+                                        <span class="text-info">@producto.PrecioPromedioVenta.ToString("C")</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@producto.PrecioLista.ToString("C")</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">@producto.NumeroOrdenes</span>
+                                    </td>
+                                    <td class="text-center">
+                                        @{
+                                            var maxVentas = reporte.Max(r => r.VentasTotales);
+                                            var porcentaje = (int)((producto.VentasTotales / maxVentas) * 100);
+                                        }
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar @GetProgressBarClass(posicion)" 
+                                                 role="progressbar" 
+                                                 style="width: @porcentaje%"
+                                                 aria-valuenow="@porcentaje" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                @porcentaje%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="row">
+                    <div class="col">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Reporte generado el @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                        </small>
+                    </div>
+                    <div class="col-auto">
+                        <small class="text-muted">
+                            Datos basados en órdenes completadas y enviadas
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            No se encontraron datos de ventas para generar el reporte.
+        </div>
+    }
+</div>
+
+@code {
+    private List<ReporteTop10ProductosDto>? reporte;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GenerarReporte();
+    }
+
+    private async Task GenerarReporte()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+            
+            reporte = await ApiService.GetReporteTop10ProductosAsync();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al generar reporte: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Regresar()
+    {
+        Navigation.NavigateTo("/sales/orders");
+    }
+
+    private void ExportarReporte()
+    {
+        JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de exportación pendiente de implementar");
+    }
+
+    private void ImprimirReporte()
+    {
+        JSRuntime.InvokeVoidAsync("window.print");
+    }
+
+    private string GetRowClass(int posicion) => posicion switch
+    {
+        1 => "table-warning",
+        2 => "table-light",
+        3 => "table-light",
+        _ => ""
+    };
+
+    private string GetPositionBadgeClass(int posicion) => posicion switch
+    {
+        1 => "bg-warning",
+        2 => "bg-secondary",
+        3 => "bg-warning",
+        _ => "bg-light text-dark"
+    };
+
+    private string GetPositionIcon(int posicion) => posicion switch
+    {
+        1 => "🏆",
+        2 => "🥈",
+        3 => "🥉",
+        _ => "#"
+    };
+
+    private string GetProgressBarClass(int posicion) => posicion switch
+    {
+        1 => "bg-warning",
+        2 => "bg-secondary",
+        3 => "bg-info",
+        _ => "bg-primary"
+    };
+}
+
+<style>
+    .podium-item {
+        padding: 2rem 1rem;
+        border-radius: 15px;
+        margin: 0.5rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .podium-item:hover {
+        transform: translateY(-5px);
+    }
+    
+    .podium-item.gold {
+        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+        transform: scale(1.05);
+    }
+    
+    .podium-item.silver {
+        background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+    }
+    
+    .podium-item.bronze {
+        background: linear-gradient(135deg, #cd7f32 0%, #daa520 100%);
+    }
+    
+    .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    .table-warning {
+        --bs-table-bg: rgba(255, 193, 7, 0.2);
+    }
+
+    .progress {
+        border-radius: 10px;
+    }
+
+    @@media print {
+        .btn, .breadcrumb, .card-header .row .col-auto {
+            display: none !important;
+        }
+        
+        .podium-item {
+            break-inside: avoid;
+        }
+    }
+</style>

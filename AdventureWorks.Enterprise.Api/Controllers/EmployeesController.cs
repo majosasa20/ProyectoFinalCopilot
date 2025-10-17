@@ -1,0 +1,407 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using AdventureWorks.Enterprise.Api.Data;
+using AdventureWorks.Enterprise.Api.Models.HumanResources;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controlador para la gestión de empleados
+    /// </summary>
+    [ApiController]
+    [Route("api/empleados")]
+    public class EmpleadosController : ControllerBase
+    {
+        private readonly AdventureWorksDbContext _context;
+        private readonly ILogger<EmpleadosController> _logger;
+
+        public EmpleadosController(AdventureWorksDbContext context, ILogger<EmpleadosController> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Endpoint de prueba sin autenticación para diagnóstico
+        /// </summary>
+        /// <returns>Estado del sistema</returns>
+        [HttpGet("test")]
+        public ActionResult Test()
+        {
+            try
+            {
+                _logger.LogInformation("?? Endpoint de prueba ejecutado en {Timestamp}", DateTime.UtcNow);
+                
+                return Ok(new { 
+                    message = "API funcionando correctamente",
+                    timestamp = DateTime.UtcNow,
+                    status = "OK"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "?? Error en endpoint de prueba");
+                return StatusCode(500, new { 
+                    error = "Error interno del servidor",
+                    message = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        /// <summary>
+        /// Obtener todos los empleados - versión simplificada para evitar referencias circulares
+        /// </summary>
+        /// <returns>Lista de empleados</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<object>>> ObtenerEmpleados()
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo todos los empleados en {Timestamp}", DateTime.UtcNow);
+                
+                var empleados = await _context.Employees
+                    .Where(e => e.CurrentFlag)
+                    .Select(e => new
+                    {
+                        e.BusinessEntityID,
+                        e.NationalIDNumber,
+                        e.LoginID,
+                        e.OrganizationLevel,
+                        e.JobTitle,
+                        e.BirthDate,
+                        e.MaritalStatus,
+                        e.Gender,
+                        e.HireDate,
+                        e.SalariedFlag,
+                        e.VacationHours,
+                        e.SickLeaveHours,
+                        e.CurrentFlag,
+                        e.ModifiedDate,
+                        // Incluir información del departamento actual sin referencias circulares
+                        DepartamentoActual = e.EmployeeDepartmentHistories
+                            .Where(edh => edh.EndDate == null)
+                            .Select(edh => new
+                            {
+                                DepartmentID = edh.Department.DepartmentID,
+                                DepartmentName = edh.Department.Name,
+                                GroupName = edh.Department.GroupName,
+                                StartDate = edh.StartDate
+                            })
+                            .FirstOrDefault()
+                    })
+                    .OrderBy(e => e.BusinessEntityID)
+                    .Take(100)
+                    .ToListAsync();
+
+                _logger.LogInformation("? Empleados obtenidos exitosamente: {Count}", empleados.Count);
+                return Ok(empleados);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "?? Error al obtener los empleados");
+                return StatusCode(500, new { 
+                    error = "Error interno del servidor",
+                    message = "Ocurrió un error al procesar su solicitud",
+                    details = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        /// <summary>
+        /// Obtener empleado por ID - versión simplificada
+        /// </summary>
+        /// <param name="id">ID del empleado</param>
+        /// <returns>Detalles del empleado</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<object>> ObtenerEmpleado(int id)
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo empleado {EmpleadoId} en {Timestamp}", id, DateTime.UtcNow);
+                
+                var empleado = await _context.Employees
+                    .Where(e => e.BusinessEntityID == id)
+                    .Select(e => new
+                    {
+                        e.BusinessEntityID,
+                        e.NationalIDNumber,
+                        e.LoginID,
+                        e.OrganizationLevel,
+                        e.JobTitle,
+                        e.BirthDate,
+                        e.MaritalStatus,
+                        e.Gender,
+                        e.HireDate,
+                        e.SalariedFlag,
+                        e.VacationHours,
+                        e.SickLeaveHours,
+                        e.CurrentFlag,
+                        e.ModifiedDate,
+                        // Historial de departamentos sin referencias circulares
+                        HistorialDepartamentos = e.EmployeeDepartmentHistories
+                            .Select(edh => new
+                            {
+                                DepartmentID = edh.Department.DepartmentID,
+                                DepartmentName = edh.Department.Name,
+                                GroupName = edh.Department.GroupName,
+                                StartDate = edh.StartDate,
+                                EndDate = edh.EndDate,
+                                ShiftName = edh.Shift.Name
+                            })
+                            .OrderByDescending(edh => edh.StartDate),
+                        // Historial de pagos
+                        HistorialPagos = e.EmployeePayHistories
+                            .Select(eph => new
+                            {
+                                eph.RateChangeDate,
+                                eph.Rate,
+                                eph.PayFrequency
+                            })
+                            .OrderByDescending(eph => eph.RateChangeDate)
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (empleado == null)
+                {
+                    _logger.LogWarning("?? Empleado {EmpleadoId} no encontrado", id);
+                    return NotFound(new { 
+                        error = "Empleado no encontrado",
+                        message = $"Empleado con ID {id} no encontrado",
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+
+                _logger.LogInformation("? Empleado {EmpleadoId} obtenido exitosamente", id);
+                return Ok(empleado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "?? Error al obtener el empleado {EmpleadoId}", id);
+                return StatusCode(500, new { 
+                    error = "Error interno del servidor",
+                    message = "Ocurrió un error al procesar su solicitud",
+                    details = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        /// <summary>
+        /// Obtener reporte de empleados con más tiempo en su departamento actual
+        /// </summary>
+        /// <returns>Reporte de empleados por tiempo en departamento</returns>
+        [HttpGet("reporte/tiempo-departamento")]
+        public async Task<ActionResult<IEnumerable<ReporteEmpleadosDepartamentoDto>>> ObtenerReporteEmpleadosTiempoDepartamento()
+        {
+            try
+            {
+                _logger.LogInformation("?? Generando reporte de empleados con más tiempo en departamento en {Timestamp}", DateTime.UtcNow);
+                
+                var reporte = await _context.Database
+                    .SqlQueryRaw<ReporteEmpleadosDepartamentoDto>("EXEC usp_EmpleadosConMasTiempoEnDepartamento_Sagastume")
+                    .ToListAsync();
+
+                _logger.LogInformation("? Reporte de empleados generado exitosamente con {Count} registros", reporte.Count);
+                return Ok(reporte);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "?? Error al generar el reporte de empleados por tiempo en departamento");
+                return StatusCode(500, new { 
+                    error = "Error interno del servidor",
+                    message = "Error al generar el reporte",
+                    details = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        /// <summary>
+        /// Crear un nuevo empleado
+        /// </summary>
+        /// <param name="empleado">Datos del empleado</param>
+        /// <returns>Empleado creado</returns>
+        [HttpPost]
+        public async Task<ActionResult<Employee>> CrearEmpleado([FromBody] Employee empleado)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("?? Estado del modelo inválido para crear empleado");
+                    return BadRequest(new { 
+                        error = "Datos inválidos",
+                        message = "Los datos proporcionados no son válidos",
+                        errors = ModelState,
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+
+                empleado.RowGuid = Guid.NewGuid();
+                empleado.ModifiedDate = DateTime.UtcNow;
+                empleado.CurrentFlag = true;
+
+                _context.Employees.Add(empleado);
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("? Empleado {EmpleadoId} creado en {Timestamp}", empleado.BusinessEntityID, DateTime.UtcNow);
+                
+                return CreatedAtAction(nameof(ObtenerEmpleado), new { id = empleado.BusinessEntityID }, empleado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "?? Error al crear el empleado");
+                return StatusCode(500, new { 
+                    error = "Error interno del servidor",
+                    message = "Ocurrió un error al crear el empleado",
+                    details = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        /// <summary>
+        /// Actualizar un empleado existente
+        /// </summary>
+        /// <param name="id">ID del empleado</param>
+        /// <param name="empleado">Datos actualizados del empleado</param>
+        /// <returns>Sin contenido si es exitoso</returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> ActualizarEmpleado(int id, [FromBody] Employee empleado)
+        {
+            try
+            {
+                if (id != empleado.BusinessEntityID)
+                {
+                    _logger.LogWarning("?? ID de empleado no coincide: {RequestId} vs {ModelId}", id, empleado.BusinessEntityID);
+                    return BadRequest(new { 
+                        error = "ID no coincide",
+                        message = "El ID del empleado no coincide con el ID en la URL",
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("?? Estado del modelo inválido para actualizar empleado {EmpleadoId}", id);
+                    return BadRequest(new { 
+                        error = "Datos inválidos",
+                        message = "Los datos proporcionados no son válidos",
+                        errors = ModelState,
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+
+                var empleadoExistente = await _context.Employees.FindAsync(id);
+                if (empleadoExistente == null)
+                {
+                    _logger.LogWarning("?? Empleado {EmpleadoId} no encontrado para actualizar", id);
+                    return NotFound(new { 
+                        error = "Empleado no encontrado",
+                        message = $"Empleado con ID {id} no encontrado",
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+
+                // Actualizar propiedades
+                empleadoExistente.NationalIDNumber = empleado.NationalIDNumber;
+                empleadoExistente.LoginID = empleado.LoginID;
+                empleadoExistente.JobTitle = empleado.JobTitle;
+                empleadoExistente.BirthDate = empleado.BirthDate;
+                empleadoExistente.MaritalStatus = empleado.MaritalStatus;
+                empleadoExistente.Gender = empleado.Gender;
+                empleadoExistente.HireDate = empleado.HireDate;
+                empleadoExistente.SalariedFlag = empleado.SalariedFlag;
+                empleadoExistente.VacationHours = empleado.VacationHours;
+                empleadoExistente.SickLeaveHours = empleado.SickLeaveHours;
+                empleadoExistente.CurrentFlag = empleado.CurrentFlag;
+                empleadoExistente.ModifiedDate = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("? Empleado {EmpleadoId} actualizado en {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError(ex, "?? Error de concurrencia al actualizar empleado {EmpleadoId}", id);
+                
+                if (!await EmpleadoExists(id))
+                {
+                    return NotFound(new { 
+                        error = "Empleado no encontrado",
+                        message = $"Empleado con ID {id} no encontrado",
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+                
+                return Conflict(new { 
+                    error = "Conflicto de concurrencia",
+                    message = "El empleado fue modificado por otro usuario",
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "?? Error al actualizar el empleado {EmpleadoId}", id);
+                return StatusCode(500, new { 
+                    error = "Error interno del servidor",
+                    message = "Ocurrió un error al actualizar el empleado",
+                    details = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        /// <summary>
+        /// Eliminar un empleado
+        /// </summary>
+        /// <param name="id">ID del empleado</param>
+        /// <returns>Sin contenido si es exitoso</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> EliminarEmpleado(int id)
+        {
+            try
+            {
+                var empleado = await _context.Employees.FindAsync(id);
+                if (empleado == null)
+                {
+                    _logger.LogWarning("?? Empleado {EmpleadoId} no encontrado para eliminar", id);
+                    return NotFound(new { 
+                        error = "Empleado no encontrado",
+                        message = $"Empleado con ID {id} no encontrado",
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+
+                // En lugar de eliminar físicamente, marcar como inactivo
+                empleado.CurrentFlag = false;
+                empleado.ModifiedDate = DateTime.UtcNow;
+                
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("? Empleado {EmpleadoId} marcado como inactivo en {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "?? Error al eliminar el empleado {EmpleadoId}", id);
+                return StatusCode(500, new { 
+                    error = "Error interno del servidor",
+                    message = "Ocurrió un error al eliminar el empleado",
+                    details = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        private async Task<bool> EmpleadoExists(int id)
+        {
+            return await _context.Employees.AnyAsync(e => e.BusinessEntityID == id);
+        }
+    }
+}

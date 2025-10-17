@@ -1,0 +1,17 @@
+﻿{
+  "DetailedErrors": true,
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=.;Database=AdventureWorks2014;Trusted_Connection=true;MultipleActiveResultSets=true;TrustServerCertificate=true",
+    "SDESICASQL": "Server=localhost;Database=AdventureWorksDW2014;Integrated Security=true;MultipleActiveResultSets=true;TrustServerCertificate=true"
+  },
+  "ApiSettings": {
+    "ApiKey": "DEV-AW-2024-ENTERPRISE-API-KEY-DEVELOPMENT-ONLY-123456789"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "AdventureWorks.Enterprise.Api.Middleware.ApiKeyMiddleware": "Information"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+﻿using AdventureWorks.Enterprise.WebApp.Components;
+using AdventureWorks.Enterprise.WebApp.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+// Configure HttpClient for API communication
+builder.Services.AddHttpClient<ApiService>(client =>
+{
+    // Obtener la URL base de la configuración
+    var baseUrl = builder.Configuration.GetValue<string>("ApiSettings:BaseUrl");
+    
+    if (string.IsNullOrEmpty(baseUrl))
+    {
+        // URL por defecto si no está configurada
+        baseUrl = "https://localhost:7001";
+    }
+    
+    // Asegurar que la URL termine con '/'
+    if (!baseUrl.EndsWith('/'))
+    {
+        baseUrl += '/';
+    }
+    
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    
+    // Add default headers
+    client.DefaultRequestHeaders.Add("User-Agent", "AdventureWorks-WebApp/1.0");
+    
+    // Agregar API Key desde configuración
+    var apiKey = builder.Configuration.GetValue<string>("ApiSettings:ApiKey");
+    if (!string.IsNullOrEmpty(apiKey))
+    {
+        client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
+    }
+});
+
+// Register ApiService as scoped
+builder.Services.AddScoped<ApiService>();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+app.UseAntiforgery();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+// Log configuration at startup
+using (var scope = app.Services.CreateScope())
+{
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    
+    var baseUrl = configuration.GetValue<string>("ApiSettings:BaseUrl");
+    var apiKey = configuration.GetValue<string>("ApiSettings:ApiKey");
+    
+    logger.LogInformation("🔧 API Base URL configurada: {BaseUrl}", baseUrl ?? "No configurada");
+    logger.LogInformation("🔑 API Key configurada: {HasApiKey}", !string.IsNullOrEmpty(apiKey) ? "Sí" : "No");
+}
+
+app.Run();

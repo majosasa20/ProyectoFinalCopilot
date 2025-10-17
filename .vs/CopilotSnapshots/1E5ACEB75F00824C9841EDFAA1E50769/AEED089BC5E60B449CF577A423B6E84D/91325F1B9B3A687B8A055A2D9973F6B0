@@ -1,0 +1,42 @@
+﻿using AdventureWorks.Enterprise.WebApp.Components;
+using AdventureWorks.Enterprise.WebApp.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+// Configure HttpClient for API communication
+builder.Services.AddHttpClient<ApiService>(client =>
+{
+    var baseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7001";
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    
+    // Add default headers
+    client.DefaultRequestHeaders.Add("User-Agent", "AdventureWorks-WebApp/1.0");
+});
+
+// Register ApiService
+builder.Services.AddScoped<ApiService>();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+app.UseAntiforgery();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+app.Run();

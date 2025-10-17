@@ -1,0 +1,280 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using AdventureWorks.Enterprise.Api.Models.Production;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controller for managing products and inventory
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ProductsController : ControllerBase
+    {
+        private readonly ILogger<ProductsController> _logger;
+        private static List<ProductDto> _products = new();
+        private static List<ProductInventoryDto> _inventory = new();
+
+        public ProductsController(ILogger<ProductsController> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Get all products
+        /// </summary>
+        /// <returns>List of products</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts()
+        {
+            try
+            {
+                _logger.LogInformation("Getting all products at {Timestamp}", DateTime.UtcNow);
+                return Ok(_products);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting products");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Get product by ID
+        /// </summary>
+        /// <param name="id">Product ID</param>
+        /// <returns>Product details</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ProductDto>> GetProduct(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Getting product {ProductId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                var product = _products.FirstOrDefault(p => p.ProductID == id);
+                if (product == null)
+                {
+                    _logger.LogWarning("Product {ProductId} not found", id);
+                    return NotFound($"Product with ID {id} not found");
+                }
+
+                return Ok(product);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting product {ProductId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Get product inventory
+        /// </summary>
+        /// <param name="id">Product ID</param>
+        /// <returns>Product inventory details</returns>
+        [HttpGet("{id}/inventory")]
+        public async Task<ActionResult<IEnumerable<ProductInventoryDto>>> GetProductInventory(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Getting inventory for product {ProductId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                var inventory = _inventory.Where(i => i.ProductID == id).ToList();
+                return Ok(inventory);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting inventory for product {ProductId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Create a new product
+        /// </summary>
+        /// <param name="product">Product data</param>
+        /// <returns>Created product</returns>
+        [HttpPost]
+        public async Task<ActionResult<ProductDto>> CreateProduct([FromBody] ProductDto product)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for creating product");
+                    return BadRequest(ModelState);
+                }
+
+                product.ProductID = _products.Count > 0 ? _products.Max(p => p.ProductID) + 1 : 1;
+                product.RowGuid = Guid.NewGuid();
+                product.ModifiedDate = DateTime.UtcNow;
+
+                _products.Add(product);
+                
+                _logger.LogInformation("Created product {ProductId} at {Timestamp}", product.ProductID, DateTime.UtcNow);
+                
+                return CreatedAtAction(nameof(GetProduct), new { id = product.ProductID }, product);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while creating product");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Update an existing product
+        /// </summary>
+        /// <param name="id">Product ID</param>
+        /// <param name="product">Updated product data</param>
+        /// <returns>No content if successful</returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductDto product)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for updating product {ProductId}", id);
+                    return BadRequest(ModelState);
+                }
+
+                var existingProduct = _products.FirstOrDefault(p => p.ProductID == id);
+                if (existingProduct == null)
+                {
+                    _logger.LogWarning("Product {ProductId} not found for update", id);
+                    return NotFound($"Product with ID {id} not found");
+                }
+
+                // Update properties
+                existingProduct.Name = product.Name;
+                existingProduct.ProductNumber = product.ProductNumber;
+                existingProduct.MakeFlag = product.MakeFlag;
+                existingProduct.FinishedGoodsFlag = product.FinishedGoodsFlag;
+                existingProduct.Color = product.Color;
+                existingProduct.SafetyStockLevel = product.SafetyStockLevel;
+                existingProduct.ReorderPoint = product.ReorderPoint;
+                existingProduct.StandardCost = product.StandardCost;
+                existingProduct.ListPrice = product.ListPrice;
+                existingProduct.Size = product.Size;
+                existingProduct.Weight = product.Weight;
+                existingProduct.DaysToManufacture = product.DaysToManufacture;
+                existingProduct.ProductLine = product.ProductLine;
+                existingProduct.Class = product.Class;
+                existingProduct.Style = product.Style;
+                existingProduct.SellStartDate = product.SellStartDate;
+                existingProduct.SellEndDate = product.SellEndDate;
+                existingProduct.DiscontinuedDate = product.DiscontinuedDate;
+                existingProduct.ModifiedDate = DateTime.UtcNow;
+
+                _logger.LogInformation("Updated product {ProductId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating product {ProductId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Delete a product
+        /// </summary>
+        /// <param name="id">Product ID</param>
+        /// <returns>No content if successful</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            try
+            {
+                var product = _products.FirstOrDefault(p => p.ProductID == id);
+                if (product == null)
+                {
+                    _logger.LogWarning("Product {ProductId} not found for deletion", id);
+                    return NotFound($"Product with ID {id} not found");
+                }
+
+                _products.Remove(product);
+                
+                _logger.LogInformation("Deleted product {ProductId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting product {ProductId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Update product inventory
+        /// </summary>
+        /// <param name="id">Product ID</param>
+        /// <param name="inventory">Inventory data</param>
+        /// <returns>No content if successful</returns>
+        [HttpPut("{id}/inventory")]
+        public async Task<IActionResult> UpdateInventory(int id, [FromBody] ProductInventoryDto inventory)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for updating inventory for product {ProductId}", id);
+                    return BadRequest(ModelState);
+                }
+
+                var existingInventory = _inventory.FirstOrDefault(i => i.ProductID == id && i.LocationID == inventory.LocationID);
+                if (existingInventory == null)
+                {
+                    // Create new inventory record
+                    inventory.ProductID = id;
+                    inventory.RowGuid = Guid.NewGuid();
+                    inventory.ModifiedDate = DateTime.UtcNow;
+                    _inventory.Add(inventory);
+                    
+                    _logger.LogInformation("Created inventory for product {ProductId} at location {LocationId}", id, inventory.LocationID);
+                }
+                else
+                {
+                    // Update existing inventory
+                    existingInventory.Shelf = inventory.Shelf;
+                    existingInventory.Bin = inventory.Bin;
+                    existingInventory.Quantity = inventory.Quantity;
+                    existingInventory.ModifiedDate = DateTime.UtcNow;
+                    
+                    _logger.LogInformation("Updated inventory for product {ProductId} at location {LocationId}", id, inventory.LocationID);
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating inventory for product {ProductId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Get products by category
+        /// </summary>
+        /// <param name="categoryId">Product Category ID</param>
+        /// <returns>List of products in the category</returns>
+        [HttpGet("category/{categoryId}")]
+        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProductsByCategory(int categoryId)
+        {
+            try
+            {
+                _logger.LogInformation("Getting products for category {CategoryId} at {Timestamp}", categoryId, DateTime.UtcNow);
+                
+                var categoryProducts = _products.Where(p => p.ProductSubcategoryID == categoryId).ToList();
+                return Ok(categoryProducts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting products for category {CategoryId}", categoryId);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+    }
+}

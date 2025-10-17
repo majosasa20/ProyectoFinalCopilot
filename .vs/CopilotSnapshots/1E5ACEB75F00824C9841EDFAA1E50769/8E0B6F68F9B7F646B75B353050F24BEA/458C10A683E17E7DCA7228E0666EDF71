@@ -1,0 +1,180 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using AdventureWorks.Enterprise.Api.Models.HumanResources;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controller for managing employees
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class EmployeesController : ControllerBase
+    {
+        private readonly ILogger<EmployeesController> _logger;
+        private static List<EmployeeDto> _employees = new();
+
+        public EmployeesController(ILogger<EmployeesController> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Get all employees
+        /// </summary>
+        /// <returns>List of employees</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetEmployees()
+        {
+            try
+            {
+                _logger.LogInformation("Getting all employees at {Timestamp}", DateTime.UtcNow);
+                return Ok(_employees);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting employees");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Get employee by ID
+        /// </summary>
+        /// <param name="id">Employee ID</param>
+        /// <returns>Employee details</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<EmployeeDto>> GetEmployee(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Getting employee {EmployeeId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                var employee = _employees.FirstOrDefault(e => e.BusinessEntityID == id);
+                if (employee == null)
+                {
+                    _logger.LogWarning("Employee {EmployeeId} not found", id);
+                    return NotFound($"Employee with ID {id} not found");
+                }
+
+                return Ok(employee);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting employee {EmployeeId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Create a new employee
+        /// </summary>
+        /// <param name="employee">Employee data</param>
+        /// <returns>Created employee</returns>
+        [HttpPost]
+        public async Task<ActionResult<EmployeeDto>> CreateEmployee([FromBody] EmployeeDto employee)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for creating employee");
+                    return BadRequest(ModelState);
+                }
+
+                employee.BusinessEntityID = _employees.Count > 0 ? _employees.Max(e => e.BusinessEntityID) + 1 : 1;
+                employee.RowGuid = Guid.NewGuid();
+                employee.ModifiedDate = DateTime.UtcNow;
+
+                _employees.Add(employee);
+                
+                _logger.LogInformation("Created employee {EmployeeId} at {Timestamp}", employee.BusinessEntityID, DateTime.UtcNow);
+                
+                return CreatedAtAction(nameof(GetEmployee), new { id = employee.BusinessEntityID }, employee);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while creating employee");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Update an existing employee
+        /// </summary>
+        /// <param name="id">Employee ID</param>
+        /// <param name="employee">Updated employee data</param>
+        /// <returns>No content if successful</returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeDto employee)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for updating employee {EmployeeId}", id);
+                    return BadRequest(ModelState);
+                }
+
+                var existingEmployee = _employees.FirstOrDefault(e => e.BusinessEntityID == id);
+                if (existingEmployee == null)
+                {
+                    _logger.LogWarning("Employee {EmployeeId} not found for update", id);
+                    return NotFound($"Employee with ID {id} not found");
+                }
+
+                // Update properties
+                existingEmployee.NationalIDNumber = employee.NationalIDNumber;
+                existingEmployee.LoginID = employee.LoginID;
+                existingEmployee.JobTitle = employee.JobTitle;
+                existingEmployee.BirthDate = employee.BirthDate;
+                existingEmployee.MaritalStatus = employee.MaritalStatus;
+                existingEmployee.Gender = employee.Gender;
+                existingEmployee.HireDate = employee.HireDate;
+                existingEmployee.SalariedFlag = employee.SalariedFlag;
+                existingEmployee.VacationHours = employee.VacationHours;
+                existingEmployee.SickLeaveHours = employee.SickLeaveHours;
+                existingEmployee.CurrentFlag = employee.CurrentFlag;
+                existingEmployee.ModifiedDate = DateTime.UtcNow;
+
+                _logger.LogInformation("Updated employee {EmployeeId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating employee {EmployeeId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Delete an employee
+        /// </summary>
+        /// <param name="id">Employee ID</param>
+        /// <returns>No content if successful</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteEmployee(int id)
+        {
+            try
+            {
+                var employee = _employees.FirstOrDefault(e => e.BusinessEntityID == id);
+                if (employee == null)
+                {
+                    _logger.LogWarning("Employee {EmployeeId} not found for deletion", id);
+                    return NotFound($"Employee with ID {id} not found");
+                }
+
+                _employees.Remove(employee);
+                
+                _logger.LogInformation("Deleted employee {EmployeeId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting employee {EmployeeId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+    }
+}

@@ -1,0 +1,57 @@
+﻿using Microsoft.AspNetCore.Mvc;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controlador para testing y validación de API Key
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class TestController : ControllerBase
+    {
+        private readonly ILogger<TestController> _logger;
+
+        public TestController(ILogger<TestController> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Endpoint de prueba para validar que la API Key está funcionando
+        /// </summary>
+        /// <returns>Mensaje de confirmación</returns>
+        [HttpGet("ping")]
+        public IActionResult Ping()
+        {
+            _logger.LogInformation("Ping recibido desde IP: {RemoteIpAddress}", HttpContext.Connection.RemoteIpAddress);
+            
+            return Ok(new
+            {
+                message = "¡API Key válida! Acceso autorizado.",
+                timestamp = DateTime.UtcNow,
+                server = Environment.MachineName,
+                version = "1.0.0"
+            });
+        }
+
+        /// <summary>
+        /// Endpoint de prueba con información del sistema
+        /// </summary>
+        /// <returns>Información del sistema</returns>
+        [HttpGet("status")]
+        public IActionResult Status()
+        {
+            _logger.LogInformation("Status check recibido desde IP: {RemoteIpAddress}", HttpContext.Connection.RemoteIpAddress);
+            
+            return Ok(new
+            {
+                status = "Operational",
+                timestamp = DateTime.UtcNow,
+                server = Environment.MachineName,
+                environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production",
+                uptime = Environment.TickCount64,
+                version = typeof(TestController).Assembly.GetName().Version?.ToString() ?? "Unknown"
+            });
+        }
+    }
+}

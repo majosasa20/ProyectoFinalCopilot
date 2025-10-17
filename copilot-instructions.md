@@ -1,0 +1,156 @@
+# Programming Standards - [Corporation Name]
+
+## 1. Naming Conventions
+- Use **PascalCase** for classes, methods, and properties in C# and Visual Basic.
+- Use **camelCase** for variables and parameters in C#, Visual Basic, and JavaScript.
+- Use **PascalCase** for classes in JavaScript.
+- Use descriptive, lowercase names for HTML classes and attributes.
+- Use descriptive, English, and UPPERCASE names for SQL tables and columns.
+- Prefix stored procedures with `usp_` and functions with `fn_` in SQL.
+
+**Directives:**
+- Always follow official naming guidelines for each language.
+- Use clear, descriptive names for all identifiers.
+
+## 2. File Structure
+- One file per class, page, or component.
+- Organize code by feature folders (e.g., `Models`, `DTOs`, `Services`, `Pages`, `ViewModels`, `Scripts`).
+- Use `#region` to separate public and private methods in C# and VB.
+- Keep files under 300 lines when possible.
+
+**Directives:**
+- Structure projects using feature folders.
+- Separate DTOs, ViewModels, and business logic into their own files.
+
+## 3. Comments and Documentation
+- Use XML comments for public methods and classes in C# and VB.
+- Explain complex logic with inline comments.
+- Document endpoints, models, services, and scripts.
+- Keep technical documentation up to date.
+
+**Directives:**
+- Use XML documentation for all public APIs.
+- Add TODO, HACK, and NOTE comments where appropriate.
+
+## 4. Error Handling
+- Use `try-catch` in critical operations and data access (C#, VB, JavaScript).
+- Log errors using **ILogger**.
+- Never show technical details to end users.
+- Implement custom error pages in web applications.
+
+**Directives:**
+- Always use ILogger for error and event logging.
+- Implement global exception handling middleware in ASP.NET Core.
+
+## 5. Security
+- Validate and sanitize all input data (prevent XSS, CSRF, SQL Injection).
+- Use **DataAnnotations** for model validation in C# and VB.
+- Implement CSRF protection in web forms using **AntiForgeryToken**.
+- Never expose sensitive information in error messages or UI.
+- Use HTTPS in all environments.
+- Manage secrets and credentials with secure tools (e.g., **Azure Key Vault**, **Secret Manager**).
+- Limit permissions and roles in the application.
+- Audit and log sensitive access and actions using **ILogger**.
+
+**Directives:**
+- Always use HTTPS and secure headers (CSP, HSTS).
+- Use DataAnnotations and custom validators for all user input.
+- Store secrets outside of source code.
+
+## 6. Development Best Practices
+- Follow **SOLID** principles and design patterns.
+- Use **Dependency Injection** for all services.
+- Write **unit tests** and **integration tests** using **xUnit**.
+- Review code via Pull Requests and static analysis.
+- Keep dependencies updated and secure.
+- Avoid code duplication and refactor when needed.
+- Use security analysis tools (e.g., **SonarQube**, **GitHub Advanced Security**).
+- Separate business logic, presentation, and data access layers.
+
+**Directives:**
+- Use xUnit for all new tests.
+- Use DTOs to transfer data between layers.
+- Enforce code reviews and static analysis in CI/CD.
+
+## 7. Windows Forms Applications
+- Separate business logic from UI.
+- Use well-defined events and handlers.
+- Validate data on both client and server sides.
+- Handle exceptions and show user-friendly messages.
+- Never store sensitive information on the client.
+
+**Directives:**
+- Keep UI and business logic in separate classes.
+- Use DTOs for data transfer between layers.
+
+## 8. Microsoft Web Applications (Razor Pages, MVC, Web API)
+- Follow web security best practices.
+- Use strongly-typed models and validation.
+- Implement robust authentication and authorization.
+- Protect against common attacks (XSS, CSRF, SQL Injection).
+- Use layouts and partial views for reuse.
+
+**Directives:**
+- Use Razor Pages with strongly-typed ViewModels and DTOs.
+- Always validate ModelState before processing data.
+- Use ASP.NET Core Identity or OAuth2 for authentication.
+
+## 9. Example: Secure Razor Page Class
+
+```csharp
+public class IndexModel : PageModel
+{
+    private readonly IUserService _userService;
+    private readonly ILogger<IndexModel> _logger;
+
+    [BindProperty]
+    public CreateUserRequest NewUser { get; set; } = new();
+
+    public List<UserViewModel> Users { get; set; } = new();
+
+    public IndexModel(IUserService userService, ILogger<IndexModel> logger)
+    {
+        _userService = userService;
+        _logger = logger;
+    }
+
+    public async Task<IActionResult> OnGetAsync()
+    {
+        var result = await _userService.GetAllUsersAsync();
+        if (result.IsSuccess)
+        {
+            Users = result.Value.Select(u => new UserViewModel(u)).ToList();
+            return Page();
+        }
+
+        TempData["Error"] = result.Error;
+        return RedirectToPage("/Error");
+    }
+
+    public async Task<IActionResult> OnPostAsync()
+    {
+        if (!ModelState.IsValid)
+            return Page();
+
+        var result = await _userService.CreateUserAsync(NewUser);
+        if (result.IsSuccess)
+        {
+            TempData["Success"] = "User created successfully";
+            return RedirectToPage();
+        }
+
+        ModelState.AddModelError(string.Empty, result.Error);
+        return Page();
+    }
+}
+```
+
+## 10. References
+- [ASP.NET Core Security Guide](https://learn.microsoft.com/en-us/aspnet/core/security/)
+- [Razor Pages Best Practices](https://learn.microsoft.com/en-us/aspnet/core/razor-pages/?view=aspnetcore-8.0)
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [SQL Server Naming Conventions](https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-object-naming-rules)
+
+---
+
+This document must be reviewed and updated regularly to adapt to new threats and technologies.

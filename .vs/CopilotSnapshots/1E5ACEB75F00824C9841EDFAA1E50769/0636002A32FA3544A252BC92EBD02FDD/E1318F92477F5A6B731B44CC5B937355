@@ -1,0 +1,172 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using AdventureWorks.Enterprise.Api.Models.Sales;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controlador para la gestión de clientes
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ClientesController : ControllerBase
+    {
+        private readonly ILogger<ClientesController> _logger;
+        private static List<CustomerDto> _clientes = new();
+
+        public ClientesController(ILogger<ClientesController> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Obtener todos los clientes
+        /// </summary>
+        /// <returns>Lista de clientes</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<CustomerDto>>> ObtenerClientes()
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo todos los clientes en {Timestamp}", DateTime.UtcNow);
+                return Ok(_clientes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener los clientes");
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Obtener cliente por ID
+        /// </summary>
+        /// <param name="id">ID del cliente</param>
+        /// <returns>Detalles del cliente</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<CustomerDto>> ObtenerCliente(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo cliente {ClienteId} en {Timestamp}", id, DateTime.UtcNow);
+                
+                var cliente = _clientes.FirstOrDefault(c => c.CustomerID == id);
+                if (cliente == null)
+                {
+                    _logger.LogWarning("Cliente {ClienteId} no encontrado", id);
+                    return NotFound($"Cliente con ID {id} no encontrado");
+                }
+
+                return Ok(cliente);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener el cliente {ClienteId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Crear un nuevo cliente
+        /// </summary>
+        /// <param name="cliente">Datos del cliente</param>
+        /// <returns>Cliente creado</returns>
+        [HttpPost]
+        public async Task<ActionResult<CustomerDto>> CrearCliente([FromBody] CustomerDto cliente)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Estado del modelo inválido para crear cliente");
+                    return BadRequest(ModelState);
+                }
+
+                cliente.CustomerID = _clientes.Count > 0 ? _clientes.Max(c => c.CustomerID) + 1 : 1;
+                cliente.AccountNumber = $"AW{cliente.CustomerID:00000000}";
+                cliente.RowGuid = Guid.NewGuid();
+                cliente.ModifiedDate = DateTime.UtcNow;
+
+                _clientes.Add(cliente);
+                
+                _logger.LogInformation("Cliente {ClienteId} creado en {Timestamp}", cliente.CustomerID, DateTime.UtcNow);
+                
+                return CreatedAtAction(nameof(ObtenerCliente), new { id = cliente.CustomerID }, cliente);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear el cliente");
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Actualizar un cliente existente
+        /// </summary>
+        /// <param name="id">ID del cliente</param>
+        /// <param name="cliente">Datos actualizados del cliente</param>
+        /// <returns>Sin contenido si es exitoso</returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> ActualizarCliente(int id, [FromBody] CustomerDto cliente)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Estado del modelo inválido para actualizar cliente {ClienteId}", id);
+                    return BadRequest(ModelState);
+                }
+
+                var clienteExistente = _clientes.FirstOrDefault(c => c.CustomerID == id);
+                if (clienteExistente == null)
+                {
+                    _logger.LogWarning("Cliente {ClienteId} no encontrado para actualizar", id);
+                    return NotFound($"Cliente con ID {id} no encontrado");
+                }
+
+                clienteExistente.PersonID = cliente.PersonID;
+                clienteExistente.StoreID = cliente.StoreID;
+                clienteExistente.TerritoryID = cliente.TerritoryID;
+                clienteExistente.ModifiedDate = DateTime.UtcNow;
+
+                _logger.LogInformation("Cliente {ClienteId} actualizado en {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar el cliente {ClienteId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+
+        /// <summary>
+        /// Eliminar un cliente
+        /// </summary>
+        /// <param name="id">ID del cliente</param>
+        /// <returns>Sin contenido si es exitoso</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> EliminarCliente(int id)
+        {
+            try
+            {
+                var cliente = _clientes.FirstOrDefault(c => c.CustomerID == id);
+                if (cliente == null)
+                {
+                    _logger.LogWarning("Cliente {ClienteId} no encontrado para eliminar", id);
+                    return NotFound($"Cliente con ID {id} no encontrado");
+                }
+
+                _clientes.Remove(cliente);
+                
+                _logger.LogInformation("Cliente {ClienteId} eliminado en {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar el cliente {ClienteId}", id);
+                return StatusCode(500, "Ocurrió un error al procesar su solicitud");
+            }
+        }
+    }
+}

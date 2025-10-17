@@ -1,0 +1,579 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using AdventureWorks.Enterprise.WebApp.Models.HumanResources;
+using AdventureWorks.Enterprise.WebApp.Models.Sales;
+using AdventureWorks.Enterprise.WebApp.Models.Production;
+
+namespace AdventureWorks.Enterprise.WebApp.Services
+{
+    /// <summary>
+    /// Servicio para comunicación con la API de AdventureWorks Enterprise
+    /// </summary>
+    public class ApiService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly ILogger<ApiService> _logger;
+        private readonly JsonSerializerOptions _jsonOptions;
+
+        public ApiService(HttpClient httpClient, ILogger<ApiService> logger)
+        {
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            
+            // Configurar opciones JSON
+            _jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true
+            };
+
+            // Validar configuración del HttpClient
+            ValidateHttpClientConfiguration();
+        }
+
+        private void ValidateHttpClientConfiguration()
+        {
+            _logger.LogInformation("?? Validando configuración del HttpClient...");
+            
+            // Log información básica del HttpClient
+            _logger.LogInformation("?? HttpClient - Timeout: {Timeout}", _httpClient.Timeout);
+            _logger.LogInformation("?? HttpClient - MaxResponseContentBufferSize: {BufferSize}", _httpClient.MaxResponseContentBufferSize);
+            
+            // Verificar BaseAddress
+            if (_httpClient.BaseAddress == null)
+            {
+                _logger.LogError("? BaseAddress del HttpClient es NULL");
+                _logger.LogError("?? Posibles causas:");
+                _logger.LogError("   1. Configuración 'ApiSettings:BaseUrl' no existe en appsettings.json");
+                _logger.LogError("   2. Error en la inyección de dependencias del HttpClient");
+                _logger.LogError("   3. Error en Program.cs durante la configuración del HttpClient");
+                
+                // En lugar de lanzar excepción, log detallado y continuar
+                throw new InvalidOperationException(
+                    "HttpClient BaseAddress no está configurada. " +
+                    "Verifique: 1) appsettings.json contiene 'ApiSettings:BaseUrl', " +
+                    "2) Program.cs configura correctamente AddHttpClient<ApiService>");
+            }
+            
+            _logger.LogInformation("? BaseAddress configurada: {BaseAddress}", _httpClient.BaseAddress);
+            
+            // Verificar que la BaseAddress sea válida
+            try
+            {
+                var testUri = new Uri(_httpClient.BaseAddress, "api/test");
+                _logger.LogInformation("?? URL de prueba generada: {TestUri}", testUri);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error generando URL de prueba con BaseAddress");
+                throw new InvalidOperationException($"BaseAddress inválida: {ex.Message}", ex);
+            }
+            
+            // Verificar headers
+            _logger.LogInformation("??? Verificando headers del HttpClient...");
+            
+            var hasApiKey = _httpClient.DefaultRequestHeaders.Contains("X-API-Key");
+            _logger.LogInformation("?? API Key en headers: {HasApiKey}", hasApiKey ? "? Sí" : "?? No");
+            
+            if (!hasApiKey)
+            {
+                _logger.LogWarning("?? No se encontró API Key en headers - algunas operaciones pueden fallar");
+                _logger.LogWarning("?? Verifique que 'ApiSettings:ApiKey' esté configurado en appsettings.json");
+            }
+            
+            var userAgent = _httpClient.DefaultRequestHeaders.UserAgent.ToString();
+            _logger.LogInformation("??? User-Agent: {UserAgent}", string.IsNullOrEmpty(userAgent) ? "No configurado" : userAgent);
+            
+            // Log todos los headers para debugging
+            _logger.LogInformation("?? Headers configurados:");
+            foreach (var header in _httpClient.DefaultRequestHeaders)
+            {
+                _logger.LogInformation("   ?? {HeaderName}: {HeaderValue}", 
+                    header.Key, 
+                    string.Join(", ", header.Value));
+            }
+            
+            _logger.LogInformation("? Validación de HttpClient completada exitosamente");
+        }
+
+        #region Human Resources - Empleados
+
+        /// <summary>
+        /// Obtener todos los empleados
+        /// </summary>
+        /// <returns>Lista de empleados</returns>
+        public async Task<List<EmployeeDto>> GetEmpleadosAsync()
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo empleados desde API...");
+                _logger.LogInformation("?? URL completa: {FullUrl}", new Uri(_httpClient.BaseAddress!, "api/empleados"));
+                
+                var response = await _httpClient.GetAsync("api/empleados");
+                
+                _logger.LogInformation("?? Respuesta recibida - Status: {StatusCode}", response.StatusCode);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("? Error en la respuesta de la API: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                    throw new HttpRequestException($"Error en la API: {response.StatusCode} - {errorContent}");
+                }
+                
+                response.EnsureSuccessStatusCode();
+                
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("?? Contenido recibido - Length: {Length}", jsonContent.Length);
+                
+                if (string.IsNullOrEmpty(jsonContent))
+                {
+                    _logger.LogWarning("?? Respuesta vacía de la API");
+                    return new List<EmployeeDto>();
+                }
+                
+                var empleados = JsonSerializer.Deserialize<List<EmployeeDto>>(jsonContent, _jsonOptions) ?? new List<EmployeeDto>();
+                _logger.LogInformation("? Empleados deserializados exitosamente: {Count}", empleados.Count);
+                
+                return empleados;
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "?? Error de HTTP al obtener empleados");
+                throw new Exception($"Error de conexión con la API: {ex.Message}", ex);
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "?? Timeout al obtener empleados");
+                throw new Exception("La solicitud a la API ha expirado. Verifique la conectividad.", ex);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "?? Error de deserialización JSON");
+                throw new Exception("Error al procesar la respuesta de la API.", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error general al obtener empleados");
+                
+                // Información adicional de debugging
+                _logger.LogError("?? Debug Info - BaseAddress: {BaseAddress}", _httpClient.BaseAddress?.ToString() ?? "NULL");
+                _logger.LogError("?? Debug Info - Timeout: {Timeout}", _httpClient.Timeout);
+                
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtener empleado por ID
+        /// </summary>
+        /// <param name="id">ID del empleado</param>
+        /// <returns>Empleado</returns>
+        public async Task<EmployeeDto?> GetEmpleadoAsync(int id)
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo empleado {EmpleadoId}", id);
+                var response = await _httpClient.GetAsync($"api/empleados/{id}");
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("?? Empleado {EmpleadoId} no encontrado", id);
+                    return null;
+                }
+                
+                response.EnsureSuccessStatusCode();
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<EmployeeDto>(jsonContent, _jsonOptions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al obtener empleado {EmpleadoId}", id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtener reporte de empleados con más tiempo en departamento
+        /// </summary>
+        /// <returns>Lista de empleados con tiempo en departamento</returns>
+        public async Task<List<ReporteEmpleadosDepartamentoDto>> GetReporteEmpleadosTiempoDepartamentoAsync()
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo reporte de empleados por tiempo en departamento");
+                var response = await _httpClient.GetAsync("api/empleados/reporte/tiempo-departamento");
+                response.EnsureSuccessStatusCode();
+                
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<List<ReporteEmpleadosDepartamentoDto>>(jsonContent, _jsonOptions) ?? new List<ReporteEmpleadosDepartamentoDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al obtener reporte de empleados");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Crear empleado
+        /// </summary>
+        /// <param name="empleado">Datos del empleado</param>
+        /// <returns>Empleado creado</returns>
+        public async Task<EmployeeDto> CreateEmpleadoAsync(EmployeeDto empleado)
+        {
+            try
+            {
+                _logger.LogInformation("? Creando empleado");
+                var json = JsonSerializer.Serialize(empleado, _jsonOptions);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PostAsync("api/empleados", content);
+                response.EnsureSuccessStatusCode();
+                
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<EmployeeDto>(jsonContent, _jsonOptions) ?? empleado;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al crear empleado");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Actualizar empleado
+        /// </summary>
+        /// <param name="id">ID del empleado</param>
+        /// <param name="empleado">Datos actualizados</param>
+        /// <returns>True si se actualizó correctamente</returns>
+        public async Task<bool> UpdateEmpleadoAsync(int id, EmployeeDto empleado)
+        {
+            try
+            {
+                _logger.LogInformation("?? Actualizando empleado {EmpleadoId}", id);
+                var json = JsonSerializer.Serialize(empleado, _jsonOptions);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PutAsync($"api/empleados/{id}", content);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al actualizar empleado {EmpleadoId}", id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Eliminar empleado
+        /// </summary>
+        /// <param name="id">ID del empleado</param>
+        /// <returns>True si se eliminó correctamente</returns>
+        public async Task<bool> DeleteEmpleadoAsync(int id)
+        {
+            try
+            {
+                _logger.LogInformation("??? Eliminando empleado {EmpleadoId}", id);
+                var response = await _httpClient.DeleteAsync($"api/empleados/{id}");
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al eliminar empleado {EmpleadoId}", id);
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Sales - Órdenes
+
+        /// <summary>
+        /// Obtener todas las órdenes
+        /// </summary>
+        /// <returns>Lista de órdenes</returns>
+        public async Task<List<SalesOrderHeaderDto>> GetOrdenesAsync()
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo órdenes desde API");
+                var response = await _httpClient.GetAsync("api/ordenes");
+                response.EnsureSuccessStatusCode();
+                
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<List<SalesOrderHeaderDto>>(jsonContent, _jsonOptions) ?? new List<SalesOrderHeaderDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al obtener órdenes");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtener orden por ID
+        /// </summary>
+        /// <param name="id">ID de la orden</param>
+        /// <returns>Orden</returns>
+        public async Task<SalesOrderHeaderDto?> GetOrdenAsync(int id)
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo orden {OrdenId}", id);
+                var response = await _httpClient.GetAsync($"api/ordenes/{id}");
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    return null;
+                
+                response.EnsureSuccessStatusCode();
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<SalesOrderHeaderDto>(jsonContent, _jsonOptions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al obtener orden {OrdenId}", id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtener detalles de orden
+        /// </summary>
+        /// <param name="id">ID de la orden</param>
+        /// <returns>Lista de detalles</returns>
+        public async Task<List<SalesOrderDetailDto>> GetDetallesOrdenAsync(int id)
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo detalles de orden {OrdenId}", id);
+                var response = await _httpClient.GetAsync($"api/ordenes/{id}/detalles");
+                response.EnsureSuccessStatusCode();
+                
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<List<SalesOrderDetailDto>>(jsonContent, _jsonOptions) ?? new List<SalesOrderDetailDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al obtener detalles de orden {OrdenId}", id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtener reporte top 10 productos más vendidos
+        /// </summary>
+        /// <returns>Lista de productos más vendidos</returns>
+        public async Task<List<ReporteTop10ProductosDto>> GetReporteTop10ProductosAsync()
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo reporte top 10 productos más vendidos");
+                var response = await _httpClient.GetAsync("api/ordenes/reporte/top10-productos-mas-vendidos");
+                response.EnsureSuccessStatusCode();
+                
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<List<ReporteTop10ProductosDto>>(jsonContent, _jsonOptions) ?? new List<ReporteTop10ProductosDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al obtener reporte top 10 productos");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtener órdenes por cliente
+        /// </summary>
+        /// <param name="clienteId">ID del cliente</param>
+        /// <returns>Lista de órdenes del cliente</returns>
+        public async Task<List<SalesOrderHeaderDto>> GetOrdenesPorClienteAsync(int clienteId)
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo órdenes para cliente {ClienteId}", clienteId);
+                var response = await _httpClient.GetAsync($"api/ordenes/cliente/{clienteId}");
+                response.EnsureSuccessStatusCode();
+                
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<List<SalesOrderHeaderDto>>(jsonContent, _jsonOptions) ?? new List<SalesOrderHeaderDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al obtener órdenes para cliente {ClienteId}", clienteId);
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Production - Productos
+
+        /// <summary>
+        /// Obtener todos los productos
+        /// </summary>
+        /// <returns>Lista de productos</returns>
+        public async Task<List<ProductDto>> GetProductosAsync()
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo productos desde API");
+                var response = await _httpClient.GetAsync("api/productos");
+                response.EnsureSuccessStatusCode();
+                
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<List<ProductDto>>(jsonContent, _jsonOptions) ?? new List<ProductDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al obtener productos");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtener producto por ID
+        /// </summary>
+        /// <param name="id">ID del producto</param>
+        /// <returns>Producto</returns>
+        public async Task<ProductDto?> GetProductoAsync(int id)
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo producto {ProductoId}", id);
+                var response = await _httpClient.GetAsync($"api/productos/{id}");
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    return null;
+                
+                response.EnsureSuccessStatusCode();
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<ProductDto>(jsonContent, _jsonOptions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al obtener producto {ProductoId}", id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtener reporte de productos con bajo inventario
+        /// </summary>
+        /// <param name="umbralInventario">Umbral de inventario</param>
+        /// <returns>Lista de productos con bajo inventario</returns>
+        public async Task<List<ReporteBajoInventarioDto>> GetReporteProductosBajoInventarioAsync(int umbralInventario = 10)
+        {
+            try
+            {
+                _logger.LogInformation("?? Obteniendo reporte de productos con bajo inventario (umbral: {Umbral})", umbralInventario);
+                var response = await _httpClient.GetAsync($"api/productos/reporte/bajo-inventario?umbralInventario={umbralInventario}");
+                response.EnsureSuccessStatusCode();
+                
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<List<ReporteBajoInventarioDto>>(jsonContent, _jsonOptions) ?? new List<ReporteBajoInventarioDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al obtener reporte de bajo inventario");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Crear producto
+        /// </summary>
+        /// <param name="producto">Datos del producto</param>
+        /// <returns>Producto creado</returns>
+        public async Task<ProductDto> CreateProductoAsync(ProductDto producto)
+        {
+            try
+            {
+                _logger.LogInformation("? Creando producto");
+                var json = JsonSerializer.Serialize(producto, _jsonOptions);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PostAsync("api/productos", content);
+                response.EnsureSuccessStatusCode();
+                
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<ProductDto>(jsonContent, _jsonOptions) ?? producto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al crear producto");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Actualizar producto
+        /// </summary>
+        /// <param name="id">ID del producto</param>
+        /// <param name="producto">Datos actualizados</param>
+        /// <returns>True si se actualizó correctamente</returns>
+        public async Task<bool> UpdateProductoAsync(int id, ProductDto producto)
+        {
+            try
+            {
+                _logger.LogInformation("?? Actualizando producto {ProductoId}", id);
+                var json = JsonSerializer.Serialize(producto, _jsonOptions);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PutAsync($"api/productos/{id}", content);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al actualizar producto {ProductoId}", id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Eliminar producto
+        /// </summary>
+        /// <param name="id">ID del producto</param>
+        /// <returns>True si se eliminó correctamente</returns>
+        public async Task<bool> DeleteProductoAsync(int id)
+        {
+            try
+            {
+                _logger.LogInformation("??? Eliminando producto {ProductoId}", id);
+                var response = await _httpClient.DeleteAsync($"api/productos/{id}");
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error al eliminar producto {ProductoId}", id);
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Test Endpoints
+
+        /// <summary>
+        /// Ping para verificar conectividad
+        /// </summary>
+        /// <returns>True si hay conectividad</returns>
+        public async Task<bool> PingAsync()
+        {
+            try
+            {
+                _logger.LogInformation("?? Realizando ping a la API");
+                var response = await _httpClient.GetAsync("api/test/ping");
+                _logger.LogInformation("?? Ping resultado: {StatusCode}", response.StatusCode);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "? Error en ping");
+                return false;
+            }
+        }
+
+        #endregion
+    }
+}

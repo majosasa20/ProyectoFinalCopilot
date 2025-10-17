@@ -1,0 +1,336 @@
+@page "/humanresources/employees"
+@using AdventureWorks.Enterprise.WebApp.Models.HumanResources
+@using AdventureWorks.Enterprise.WebApp.Services
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ILogger<EmployeesList> Logger
+@using Microsoft.AspNetCore.Components.Web
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Lista de Empleados - Portal RRHH</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-users text-primary"></i>
+                Lista de Empleados
+            </h1>
+            <p class="text-muted">Gestión completa de recursos humanos</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="CargarEmpleados" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i> 
+                @(isLoading ? "Cargando..." : "Actualizar")
+            </button>
+            <button class="btn btn-success ms-2" @onclick="VerReporte">
+                <i class="fas fa-chart-bar"></i> Reporte Tiempo
+            </button>
+            <button class="btn btn-info ms-2" @onclick="TestConectividad">
+                <i class="fas fa-network-wired"></i> Test API
+            </button>
+        </div>
+    </div>
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Error:</strong> @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+            
+            @if (detailedError != null)
+            {
+                <hr>
+                <details>
+                    <summary>Detalles técnicos</summary>
+                    <pre class="mt-2 small">@detailedError</pre>
+                </details>
+            }
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center p-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando empleados...</p>
+            <small class="text-muted">Conectando con la API...</small>
+        </div>
+    }
+    else if (empleados?.Any() == true)
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-table"></i>
+                    Empleados Activos (@empleados.Count)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Login ID</th>
+                                <th>Cargo</th>
+                                <th>Estado Civil</th>
+                                <th>Género</th>
+                                <th>Fecha Contratación</th>
+                                <th>Horas Vacaciones</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var empleado in empleados)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong class="text-primary">@empleado.BusinessEntityID</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">@empleado.LoginID</span>
+                                    </td>
+                                    <td>
+                                        <strong>@empleado.JobTitle</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetMaritalStatusBadgeClass(empleado.MaritalStatus)">
+                                            @GetMaritalStatusText(empleado.MaritalStatus)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetGenderBadgeClass(empleado.Gender)">
+                                            @GetGenderText(empleado.Gender)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            @empleado.HireDate.ToString("dd/MM/yyyy")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">@empleado.VacationHours h</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                @onclick="() => VerDetalle(empleado.BusinessEntityID)">
+                                            <i class="fas fa-eye"></i> Ver
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger ms-1" 
+                                                @onclick="() => EliminarEmpleado(empleado.BusinessEntityID)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!isLoading)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            No se encontraron empleados.
+        </div>
+    }
+</div>
+
+@code {
+    private List<EmployeeDto>? empleados;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? detailedError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("?? Inicializando componente EmployeesList");
+        await CargarEmpleados();
+    }
+
+    private async Task CargarEmpleados()
+    {
+        try
+        {
+            Logger.LogInformation("?? Iniciando carga de empleados");
+            
+            // Limpiar errores previos
+            errorMessage = null;
+            detailedError = null;
+            isLoading = true;
+            StateHasChanged();
+            
+            empleados = await ApiService.GetEmpleadosAsync();
+            
+            Logger.LogInformation("? Empleados cargados exitosamente: {Count}", empleados?.Count ?? 0);
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "?? Error de conexión HTTP");
+            errorMessage = "Error de conexión con la API. Verifique que el servidor esté ejecutándose.";
+            detailedError = ex.Message;
+        }
+        catch (TaskCanceledException ex)
+        {
+            Logger.LogError(ex, "?? Timeout de conexión");
+            errorMessage = "La solicitud ha expirado. El servidor puede estar sobrecargado.";
+            detailedError = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            Logger.LogError(ex, "?? Error de configuración");
+            errorMessage = "Error de configuración del sistema.";
+            detailedError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "? Error general al cargar empleados");
+            errorMessage = "Error inesperado al cargar empleados.";
+            detailedError = $"Tipo: {ex.GetType().Name}\nMensaje: {ex.Message}\nStackTrace: {ex.StackTrace}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task TestConectividad()
+    {
+        try
+        {
+            Logger.LogInformation("?? Probando conectividad con la API");
+            
+            errorMessage = null;
+            detailedError = null;
+            
+            var resultado = await ApiService.PingAsync();
+            
+            if (resultado)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "? Conectividad con API exitosa");
+                Logger.LogInformation("? Test de conectividad exitoso");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "? No se pudo conectar con la API");
+                Logger.LogWarning("? Test de conectividad falló");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "? Error en test de conectividad");
+            await JSRuntime.InvokeVoidAsync("alert", $"? Error: {ex.Message}");
+        }
+    }
+
+    private void VerDetalle(int empleadoId)
+    {
+        Logger.LogInformation("??? Navegando a detalle del empleado {EmpleadoId}", empleadoId);
+        Navigation.NavigateTo($"/humanresources/employees/{empleadoId}");
+    }
+
+    private void VerReporte()
+    {
+        Logger.LogInformation("?? Navegando a reporte de empleados");
+        Navigation.NavigateTo("/humanresources/employees/report");
+    }
+
+    private async Task EliminarEmpleado(int empleadoId)
+    {
+        var confirmado = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"¿Está seguro que desea desactivar al empleado {empleadoId}?");
+            
+        if (confirmado)
+        {
+            try
+            {
+                Logger.LogInformation("??? Eliminando empleado {EmpleadoId}", empleadoId);
+                
+                var resultado = await ApiService.DeleteEmpleadoAsync(empleadoId);
+                if (resultado)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Empleado desactivado correctamente");
+                    await CargarEmpleados();
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Error al desactivar empleado");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "? Error al eliminar empleado {EmpleadoId}", empleadoId);
+                await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+            }
+        }
+    }
+
+    private string GetMaritalStatusBadgeClass(string status) => status switch
+    {
+        "M" => "bg-success",
+        "S" => "bg-primary",
+        _ => "bg-secondary"
+    };
+
+    private string GetMaritalStatusText(string status) => status switch
+    {
+        "M" => "Casado",
+        "S" => "Soltero",
+        _ => "N/A"
+    };
+
+    private string GetGenderBadgeClass(string gender) => gender switch
+    {
+        "M" => "bg-primary",
+        "F" => "bg-pink",
+        _ => "bg-secondary"
+    };
+
+    private string GetGenderText(string gender) => gender switch
+    {
+        "M" => "Masculino",
+        "F" => "Femenino",
+        _ => "N/A"
+    };
+}
+
+<style>
+    .bg-pink {
+        background-color: #e91e63 !important;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+    
+    .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+
+    .fa-spin {
+        animation: fa-spin 2s infinite linear;
+    }
+
+    @@keyframes fa-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    details summary {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    details summary:hover {
+        color: #0d6efd;
+    }
+</style>

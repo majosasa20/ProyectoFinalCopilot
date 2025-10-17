@@ -1,0 +1,69 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace AdventureWorks.Enterprise.Api.Data
+{
+    [Table("Employee", Schema = "HumanResources")]
+    public class Employee
+    {
+        [Key]
+        public int BusinessEntityID { get; set; }
+        
+        [Required]
+        [StringLength(15)]
+        public string NationalIDNumber { get; set; } = string.Empty;
+        
+        [Required]
+        [StringLength(256)]
+        public string LoginID { get; set; } = string.Empty;
+        
+        // Excluir OrganizationNode del mapeo para evitar problemas con hierarchyid
+        [NotMapped]
+        public byte[]? OrganizationNode { get; set; }
+        
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+        public short? OrganizationLevel { get; set; }
+        
+        [Required]
+        [StringLength(50)]
+        public string JobTitle { get; set; } = string.Empty;
+        
+        [Required]
+        [Column(TypeName = "date")]
+        public DateTime BirthDate { get; set; }
+        
+        [Required]
+        [StringLength(1)]
+        public string MaritalStatus { get; set; } = string.Empty;
+        
+        [Required]
+        [StringLength(1)]
+        public string Gender { get; set; } = string.Empty;
+        
+        [Required]
+        [Column(TypeName = "date")]
+        public DateTime HireDate { get; set; }
+        
+        [Required]
+        public bool SalariedFlag { get; set; }
+        
+        [Required]
+        public short VacationHours { get; set; }
+        
+        [Required]
+        public short SickLeaveHours { get; set; }
+        
+        [Required]
+        public bool CurrentFlag { get; set; }
+        
+        [Required]
+        public Guid RowGuid { get; set; }
+        
+        [Required]
+        public DateTime ModifiedDate { get; set; }
+        
+        // Navigation properties
+        public virtual ICollection<EmployeeDepartmentHistory> EmployeeDepartmentHistories { get; set; } = new List<EmployeeDepartmentHistory>();
+        public virtual ICollection<EmployeePayHistory> EmployeePayHistories { get; set; } = new List<EmployeePayHistory>();
+    }
+}

@@ -1,0 +1,198 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using AdventureWorks.Enterprise.Api.Models.Production;
+
+namespace AdventureWorks.Enterprise.Api.Controllers
+{
+    /// <summary>
+    /// Controller for managing work orders and production
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class WorkOrdersController : ControllerBase
+    {
+        private readonly ILogger<WorkOrdersController> _logger;
+        private static List<WorkOrderDto> _workOrders = new();
+
+        public WorkOrdersController(ILogger<WorkOrdersController> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Get all work orders
+        /// </summary>
+        /// <returns>List of work orders</returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<WorkOrderDto>>> GetWorkOrders()
+        {
+            try
+            {
+                _logger.LogInformation("Getting all work orders at {Timestamp}", DateTime.UtcNow);
+                return Ok(_workOrders);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting work orders");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Get work order by ID
+        /// </summary>
+        /// <param name="id">Work Order ID</param>
+        /// <returns>Work order details</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<WorkOrderDto>> GetWorkOrder(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Getting work order {WorkOrderId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                var workOrder = _workOrders.FirstOrDefault(w => w.WorkOrderID == id);
+                if (workOrder == null)
+                {
+                    _logger.LogWarning("Work order {WorkOrderId} not found", id);
+                    return NotFound($"Work order with ID {id} not found");
+                }
+
+                return Ok(workOrder);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting work order {WorkOrderId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Create a new work order
+        /// </summary>
+        /// <param name="workOrder">Work order data</param>
+        /// <returns>Created work order</returns>
+        [HttpPost]
+        public async Task<ActionResult<WorkOrderDto>> CreateWorkOrder([FromBody] WorkOrderDto workOrder)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for creating work order");
+                    return BadRequest(ModelState);
+                }
+
+                workOrder.WorkOrderID = _workOrders.Count > 0 ? _workOrders.Max(w => w.WorkOrderID) + 1 : 1;
+                workOrder.StockedQty = workOrder.OrderQty - workOrder.ScrappedQty;
+                workOrder.ModifiedDate = DateTime.UtcNow;
+
+                _workOrders.Add(workOrder);
+                
+                _logger.LogInformation("Created work order {WorkOrderId} at {Timestamp}", workOrder.WorkOrderID, DateTime.UtcNow);
+                
+                return CreatedAtAction(nameof(GetWorkOrder), new { id = workOrder.WorkOrderID }, workOrder);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while creating work order");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Update an existing work order
+        /// </summary>
+        /// <param name="id">Work Order ID</param>
+        /// <param name="workOrder">Updated work order data</param>
+        /// <returns>No content if successful</returns>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateWorkOrder(int id, [FromBody] WorkOrderDto workOrder)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for updating work order {WorkOrderId}", id);
+                    return BadRequest(ModelState);
+                }
+
+                var existingWorkOrder = _workOrders.FirstOrDefault(w => w.WorkOrderID == id);
+                if (existingWorkOrder == null)
+                {
+                    _logger.LogWarning("Work order {WorkOrderId} not found for update", id);
+                    return NotFound($"Work order with ID {id} not found");
+                }
+
+                existingWorkOrder.ProductID = workOrder.ProductID;
+                existingWorkOrder.OrderQty = workOrder.OrderQty;
+                existingWorkOrder.ScrappedQty = workOrder.ScrappedQty;
+                existingWorkOrder.StockedQty = workOrder.OrderQty - workOrder.ScrappedQty;
+                existingWorkOrder.StartDate = workOrder.StartDate;
+                existingWorkOrder.EndDate = workOrder.EndDate;
+                existingWorkOrder.DueDate = workOrder.DueDate;
+                existingWorkOrder.ScrapReasonID = workOrder.ScrapReasonID;
+                existingWorkOrder.ModifiedDate = DateTime.UtcNow;
+
+                _logger.LogInformation("Updated work order {WorkOrderId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating work order {WorkOrderId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Delete a work order
+        /// </summary>
+        /// <param name="id">Work Order ID</param>
+        /// <returns>No content if successful</returns>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteWorkOrder(int id)
+        {
+            try
+            {
+                var workOrder = _workOrders.FirstOrDefault(w => w.WorkOrderID == id);
+                if (workOrder == null)
+                {
+                    _logger.LogWarning("Work order {WorkOrderId} not found for deletion", id);
+                    return NotFound($"Work order with ID {id} not found");
+                }
+
+                _workOrders.Remove(workOrder);
+                
+                _logger.LogInformation("Deleted work order {WorkOrderId} at {Timestamp}", id, DateTime.UtcNow);
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting work order {WorkOrderId}", id);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+
+        /// <summary>
+        /// Get work orders by product ID
+        /// </summary>
+        /// <param name="productId">Product ID</param>
+        /// <returns>List of work orders for the product</returns>
+        [HttpGet("product/{productId}")]
+        public async Task<ActionResult<IEnumerable<WorkOrderDto>>> GetWorkOrdersByProduct(int productId)
+        {
+            try
+            {
+                _logger.LogInformation("Getting work orders for product {ProductId} at {Timestamp}", productId, DateTime.UtcNow);
+                
+                var productWorkOrders = _workOrders.Where(w => w.ProductID == productId).ToList();
+                return Ok(productWorkOrders);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting work orders for product {ProductId}", productId);
+                return StatusCode(500, "An error occurred while processing your request");
+            }
+        }
+    }
+}

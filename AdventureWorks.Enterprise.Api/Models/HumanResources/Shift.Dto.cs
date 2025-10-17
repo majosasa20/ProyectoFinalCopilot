@@ -1,0 +1,13 @@
+using System;
+
+namespace AdventureWorks.Enterprise.Api.Models.HumanResources
+{
+    public class ShiftDto
+    {
+        public byte ShiftID { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public TimeSpan StartTime { get; set; }
+        public TimeSpan EndTime { get; set; }
+        public DateTime ModifiedDate { get; set; }
+    }
+}
